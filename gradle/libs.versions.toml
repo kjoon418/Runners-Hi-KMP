@@ -1,6 +1,6 @@
 [versions]
 # --- [Build Tools] ---
-agp = "8.13.2"
+agp = "8.12.3"
 android-compileSdk = "35"
 android-minSdk = "24"
 android-targetSdk = "35"
@@ -28,6 +28,9 @@ skie = "0.9.1"
 # 테스트
 mokkery = "2.5.1"
 kotlinx-coroutines-test = "1.9.0"
+# Spring Boot
+springBoot = "3.4.1"
+springDependencyManagement = "1.1.7"
 # 네트워킹 (Ktor 클라이언트) - Kotlin 2.0 호환 버전
 ktor-client-core = "3.0.2"
 ktor-client-android = "3.0.2"
@@ -81,6 +84,11 @@ sqldelight-coroutines-extensions = { module = "app.cash.sqldelight:coroutines-ex
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatform-settings" }
 multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatform-settings" }
 
+# Spring Boot
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "springBoot" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "springBoot" }
+spring-boot-starter-json = { module = "org.springframework.boot:spring-boot-starter-json", version.ref = "springBoot" }
+
 # 기타
 logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 
@@ -92,7 +100,10 @@ composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "k
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlinSpring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 skie = { id = "co.touchlab.skie", version.ref = "skie" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 mokkery = { id = "dev.mokkery", version.ref = "mokkery" }
+springBoot = { id = "org.springframework.boot", version.ref = "springBoot" }
+springDependencyManagement = { id = "io.spring.dependency-management", version.ref = "springDependencyManagement" }
