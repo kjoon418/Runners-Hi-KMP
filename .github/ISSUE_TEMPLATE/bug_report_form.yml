@@ -1,5 +1,5 @@
-name: 🐞 Bug Report
-description: 버그 보고 및 해결을 위한 이슈
+name: 🐞 Bug Report Form
+description: 버그 보고 및 해결을 위한 이슈 폼
 title: "[BUG] "
 labels: ["bug"]
 body:
