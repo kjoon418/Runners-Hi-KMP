@@ -1,6 +1,6 @@
 ---
 name: 🐞 Bug Report Template
-description: 버그 보고 및 해결을 위한 이슈 템플릿
+about: 버그 보고 및 해결을 위한 이슈 템플릿
 title: "[BUG] "
 labels: bug
 assignees: ''
