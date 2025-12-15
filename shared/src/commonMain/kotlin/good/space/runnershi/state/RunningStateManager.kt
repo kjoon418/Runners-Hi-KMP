@@ -60,5 +60,14 @@ object RunningStateManager {
         _durationSeconds.value = 0L
         _isRunning.value = false
     }
+    
+    // [NEW] 복구용 함수: 강제로 값을 세팅
+    fun restoreTotalDistance(distance: Double) {
+        _totalDistanceMeters.value = distance
+    }
+
+    fun restorePathSegments(segments: List<List<LocationModel>>) {
+        _pathSegments.value = segments
+    }
 }
 

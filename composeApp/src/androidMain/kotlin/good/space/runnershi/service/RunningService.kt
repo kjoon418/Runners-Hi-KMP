@@ -4,25 +4,33 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import good.space.runnershi.MainActivity
+import good.space.runnershi.database.LocalRunningDataSource
 import good.space.runnershi.location.AndroidLocationTracker
 import good.space.runnershi.model.domain.LocationModel
 import good.space.runnershi.state.RunningStateManager
 import good.space.runnershi.util.DistanceCalculator
 import good.space.runnershi.util.TimeFormatter
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 class RunningService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var locationTracker: AndroidLocationTracker
+    private lateinit var dbSource: LocalRunningDataSource
     private var lastLocation: LocationModel? = null
 
     // 액션 상수 정의
@@ -41,7 +49,20 @@ class RunningService : Service() {
     override fun onCreate() {
         super.onCreate()
         locationTracker = AndroidLocationTracker(this)
+        dbSource = LocalRunningDataSource(this)
         createNotificationChannel()
+        
+        // [중요] 앱이 죽었다 살아나서 서비스가 재시작된 경우 복구 시도
+        serviceScope.launch {
+            if (dbSource.recoverLastRunIfAny()) {
+                // 복구 성공 시 알림 띄우기 (PAUSE 상태로)
+                updateNotification(
+                    TimeFormatter.formatSecondsToTime(RunningStateManager.durationSeconds.value),
+                    String.format("%.2f km", RunningStateManager.totalDistanceMeters.value / 1000.0)
+                )
+                // 필요하다면 여기서 ViewModel이나 UI에 "복구됨" 이벤트를 보낼 수도 있음
+            }
+        }
     }
 
     // 서비스가 시작될 때 호출됨 (startService 호출 시)
@@ -60,6 +81,11 @@ class RunningService : Service() {
         RunningStateManager.setRunningState(true)
         RunningStateManager.addEmptySegment() // 첫 세그먼트
 
+        // 0. DB 세션 시작
+        serviceScope.launch {
+            dbSource.startRun()
+        }
+
         // 1. Foreground 알림 시작 (필수!)
         startForeground(NOTIFICATION_ID, buildNotification("00:00", "0.00 km"))
 
@@ -73,6 +99,7 @@ class RunningService : Service() {
     private fun resumeRunning() {
         RunningStateManager.setRunningState(true)
         RunningStateManager.addEmptySegment() // 끊긴 구간 처리
+        dbSource.incrementSegmentIndex() // DB 세그먼트 인덱스 증가
         lastLocation = null // 순간이동 방지
         
         // Foreground 알림 다시 시작
@@ -98,6 +125,12 @@ class RunningService : Service() {
     private fun stopRunning() {
         RunningStateManager.setRunningState(false)
         locationTracker.stopTracking()
+        
+        // DB 세션 종료 마킹
+        serviceScope.launch {
+            dbSource.finishRun()
+        }
+        
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf() // 서비스 종료
     }
@@ -134,11 +167,24 @@ class RunningService : Service() {
                         RunningStateManager.updateLocation(newLocation, dist)
                         RunningStateManager.addPathPoint(newLocation)
                         lastLocation = newLocation
+                        
+                        // DB에 저장
+                        val totalDist = RunningStateManager.totalDistanceMeters.value
+                        val duration = RunningStateManager.durationSeconds.value
+                        
+                        serviceScope.launch {
+                            dbSource.saveLocation(newLocation, totalDist, duration)
+                        }
                     }
                 } else {
                     lastLocation = newLocation
                     RunningStateManager.updateLocation(newLocation, 0.0)
                     RunningStateManager.addPathPoint(newLocation)
+                    
+                    // 첫 위치 저장
+                    serviceScope.launch {
+                        dbSource.saveLocation(newLocation, 0.0, RunningStateManager.durationSeconds.value)
+                    }
                 }
             }.launchIn(serviceScope)
     }
