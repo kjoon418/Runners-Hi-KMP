@@ -69,7 +69,7 @@ replay_pid*
 application-secret.properties
 application-secret.yml
 application-dev.yml
-server/.env
+.env
 .classpath
 .project
 .settings/
