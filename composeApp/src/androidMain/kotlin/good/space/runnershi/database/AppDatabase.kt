@@ -8,6 +8,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Dao
 interface RunningDao {
@@ -36,12 +38,40 @@ interface RunningDao {
     suspend fun getLocationsBySession(runId: String): List<LocationEntity>
 }
 
-@Database(entities = [RunSessionEntity::class, LocationEntity::class], version = 1)
+@Database(entities = [RunSessionEntity::class, LocationEntity::class], version = 2)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun runningDao(): RunningDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
+
+        // [마이그레이션] version 1 -> 2: altitude 컬럼 제거
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // location_points 테이블에서 altitude 컬럼 제거
+                // SQLite는 컬럼 삭제를 직접 지원하지 않으므로, 새 테이블을 만들고 데이터 복사
+                database.execSQL("""
+                    CREATE TABLE location_points_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        runSessionId TEXT NOT NULL,
+                        latitude REAL NOT NULL,
+                        longitude REAL NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        segmentIndex INTEGER NOT NULL,
+                        FOREIGN KEY(runSessionId) REFERENCES run_sessions(runId) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                
+                database.execSQL("""
+                    INSERT INTO location_points_new (id, runSessionId, latitude, longitude, timestamp, segmentIndex)
+                    SELECT id, runSessionId, latitude, longitude, timestamp, segmentIndex
+                    FROM location_points
+                """.trimIndent())
+                
+                database.execSQL("DROP TABLE location_points")
+                database.execSQL("ALTER TABLE location_points_new RENAME TO location_points")
+            }
+        }
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -49,7 +79,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "runners_hi.db"
-                ).build().also { INSTANCE = it }
+                )
+                .addMigrations(MIGRATION_1_2)
+                .build().also { INSTANCE = it }
             }
         }
     }

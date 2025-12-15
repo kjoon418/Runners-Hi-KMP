@@ -13,6 +13,7 @@ androidx-core = "1.15.0"
 androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.8.4"
 androidx-testExt = "1.3.0"
+androidx-security-crypto = "1.1.0-alpha06"
 # --- [KMP Libraries] ---
 composeMultiplatform = "1.7.1"
 junit = "4.13.2"
@@ -49,6 +50,7 @@ ktor-client-ios = "3.0.2"
 ktor-client-content-negotiation = "3.0.2"
 ktor-serialization-kotlinx-json = "3.0.2"
 ktor-client-logging = "3.0.2"
+ktor-client-auth = "3.0.2"
 
 [libraries]
 # Kotlin 표준
@@ -70,6 +72,7 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtimeKtx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidx-lifecycle" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidx-security-crypto" }
 
 # Koin (DI)
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
@@ -84,6 +87,7 @@ ktor-client-ios = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor-c
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor-client-content-negotiation" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor-serialization-kotlinx-json" }
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor-client-logging" }
+ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor-client-auth" }
 # Ktor Server (기존)
 ktor-serverCore = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
 ktor-serverNetty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor" }
