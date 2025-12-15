@@ -31,7 +31,7 @@ data class LocationEntity(
     val runSessionId: String,
     val latitude: Double,
     val longitude: Double,
-    val altitude: Double,
+    // val altitude: Double, // [삭제] 일반 러닝 앱에서는 불필요
     val timestamp: Long,
     val segmentIndex: Int // [중요] 몇 번째 선분인지 (0, 1, 2...)
 )

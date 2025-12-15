@@ -40,7 +40,7 @@ class LocalRunningDataSource(context: Context) {
             runSessionId = runId,
             latitude = location.latitude,
             longitude = location.longitude,
-            altitude = location.altitude,
+            // altitude = location.altitude, // [삭제] 일반 러닝 앱에서는 불필요
             timestamp = location.timestamp,
             segmentIndex = currentSegmentIndex
         )
@@ -91,7 +91,7 @@ class LocalRunningDataSource(context: Context) {
         for (i in 0..maxIndex) {
             val entities = segmentsMap[i] ?: emptyList()
             val models = entities.map { 
-                LocationModel(it.latitude, it.longitude, it.altitude, it.timestamp) 
+                LocationModel(it.latitude, it.longitude, it.timestamp) // altitude 제거됨
             }
             recoveredSegments.add(models)
         }
@@ -101,7 +101,7 @@ class LocalRunningDataSource(context: Context) {
         // 마지막 위치 설정
         val lastPoint = points.last()
         RunningStateManager.updateLocation(
-            LocationModel(lastPoint.latitude, lastPoint.longitude, lastPoint.altitude, lastPoint.timestamp),
+            LocationModel(lastPoint.latitude, lastPoint.longitude, lastPoint.timestamp), // altitude 제거됨
             0.0
         )
 
