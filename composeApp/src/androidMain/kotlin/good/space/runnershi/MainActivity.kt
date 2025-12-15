@@ -31,10 +31,14 @@ import good.space.runnershi.viewmodel.MainViewModel
 import good.space.runnershi.viewmodel.RunningViewModel
 import good.space.runnershi.viewmodel.SignUpViewModel
 import kotlinx.coroutines.launch
+import org.koin.core.context.GlobalContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        initKoin(extraModules = listOf(androidPlatformModule))
+        // Koin이 이미 시작되어 있다면 재시작하지 않음 (브랜치 전환 후 pull 등)
+        if (GlobalContext.getOrNull() == null) {
+            initKoin(extraModules = listOf(androidPlatformModule))
+        }
         
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
