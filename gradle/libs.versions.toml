@@ -1,4 +1,6 @@
 [versions]
+# --- [스웨거] ---
+springdoc = "2.3.0"
 # --- [Jwt] ---
 jjwt = "0.11.2"
 # --- [mysql데이터베이스] ---
@@ -55,6 +57,8 @@ ktor-client-logging = "3.0.2"
 ktor-client-auth = "3.0.2"
 
 [libraries]
+# swagger
+springdoc-openapi = { group = "org.springdoc", name = "springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 # Kotlin 표준
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

@@ -1,4 +1,4 @@
-package good.space.runnershi.global.running.controller
+package good.space.runnershi.global.running.service
 
 import good.space.runnershi.global.running.entity.Running
 import good.space.runnershi.global.running.repository.RunningRepository
