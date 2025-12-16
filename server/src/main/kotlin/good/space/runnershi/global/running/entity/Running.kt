@@ -25,12 +25,16 @@ class Running (
     var id: Long? = null
 
     @OneToMany(mappedBy = "running", cascade = [CascadeType.ALL], orphanRemoval = true)
-    val routes: MutableSet<Route> = mutableSetOf()
+    val routes: MutableList<Route> = mutableListOf()
 
     fun createRoute(locations: List<LocationPointDto>) {
-        val newRoute = Route()
-        newRoute.createPoints(locations)
-        this.addRoute(newRoute)
+        val groupedLocations = locations.groupBy { it.segmentIndex }
+
+        groupedLocations.forEach { (index, pointsInSegment) ->
+            val newRoute = Route()
+            newRoute.createPoints(pointsInSegment)
+            this.addRoute(newRoute)
+        }
     }
 
     fun addRoute(route: Route) {
