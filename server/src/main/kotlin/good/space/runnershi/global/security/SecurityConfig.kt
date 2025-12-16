@@ -29,7 +29,7 @@ class SecurityConfig (
                 it.requestMatchers(
                     "/api/v1/auth/signup",
                     "/api/v1/auth/login",
-                    "/api/v1/auth/refresh", // 👈 리프레시 토큰 주소도 열어줘야 함!
+                    "/api/v1/auth/refresh",
                     "/swagger-ui/**",
                     "/v3/api-docs/**"
                 ).permitAll()

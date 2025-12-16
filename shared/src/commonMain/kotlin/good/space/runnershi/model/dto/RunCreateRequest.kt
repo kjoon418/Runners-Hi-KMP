@@ -3,7 +3,7 @@ package good.space.runnershi.model.dto
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class RunCreateRequestDto(
+data class RunCreateRequest(
     // [Header] 러닝 요약 정보
     val distanceMeters: Double,
     val durationSeconds: Long,

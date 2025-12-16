@@ -1,6 +1,7 @@
-package good.space.runnershi.global.running
+package good.space.runnershi.global.running.entity
 
 import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -11,8 +12,10 @@ class Point (
     val latitude: Double, //위도
     val longitude: Double, //경도
     val sequenceOrder: Int,
-    @ManyToOne
-    val route: Route,
+    val timestamp: String,
+    val segmentIndex: Int,
+    @ManyToOne(fetch = FetchType.LAZY)
+    var route: Route? = null
 ){
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

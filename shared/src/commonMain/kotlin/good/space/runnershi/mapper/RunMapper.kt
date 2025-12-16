@@ -2,11 +2,11 @@ package good.space.runnershi.mapper
 
 import good.space.runnershi.model.domain.RunResult
 import good.space.runnershi.model.dto.LocationPointDto
-import good.space.runnershi.model.dto.RunCreateRequestDto
+import good.space.runnershi.model.dto.RunCreateRequest
 import good.space.runnershi.util.TimeConverter
 
 object RunMapper {
-    fun mapToCreateRequest(domain: RunResult): RunCreateRequestDto {
+    fun mapToCreateRequest(domain: RunResult): RunCreateRequest {
         val flatLocations = mutableListOf<LocationPointDto>()
         var globalOrder = 0
 
@@ -25,7 +25,7 @@ object RunMapper {
             }
         }
 
-        return RunCreateRequestDto(
+        return RunCreateRequest(
             distanceMeters = domain.totalDistanceMeters,
             durationSeconds = domain.durationSeconds,
             startedAt = TimeConverter.toIso8601(domain.startedAt), // Long -> ISO String
