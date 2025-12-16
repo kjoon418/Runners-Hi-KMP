@@ -111,4 +111,9 @@ class AuthService(
 
         return TokenRefreshResponse(newAccessToken, refreshToken)
     }
+
+    @Transactional
+    fun logout(userId: Long) {
+        refreshTokenRepository.deleteByUserId(userId)
+    }
 }

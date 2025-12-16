@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseCookie
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.CookieValue
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -68,6 +69,29 @@ class AuthController(
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, cookie.toString()) // ⭐️ 갱신된 쿠키 다시 심기
             .body(newTokenResponse)
+    }
+
+    @PostMapping("/logout")
+    fun logout(
+        @AuthenticationPrincipal userId: Long
+    ): ResponseEntity<String> {
+
+        authService.logout(userId)
+
+        return ResponseEntity.ok("로그아웃 되었습니다.")
+    }
+
+    @PostMapping("/logout/web")
+    fun logoutWeb(
+        @AuthenticationPrincipal userId: Long
+    ): ResponseEntity<String> {
+
+        authService.logout(userId)
+        val cookie = createRefreshTokenCookie(null)
+
+        return ResponseEntity.ok()
+            .header(HttpHeaders.SET_COOKIE, cookie.toString()) // 쿠키 삭제 명령 전달
+            .body("로그아웃 되었습니다.")
     }
 
 
