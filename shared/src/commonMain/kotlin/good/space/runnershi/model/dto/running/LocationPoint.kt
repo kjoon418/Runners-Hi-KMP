@@ -1,9 +1,9 @@
-package good.space.runnershi.model.dto
+package good.space.runnershi.model.dto.running
 
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class LocationPointDto(
+data class LocationPoint(
     val latitude: Double,
     val longitude: Double,
     val timestamp: String, // ISO-8601 형식

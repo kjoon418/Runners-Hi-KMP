@@ -1,6 +1,6 @@
 package good.space.runnershi.global.running.entity
 
-import good.space.runnershi.model.dto.LocationPointDto
+import good.space.runnershi.model.dto.running.LocationPoint
 import good.space.runnershi.user.domain.User
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Entity
@@ -27,7 +27,7 @@ class Running (
     @OneToMany(mappedBy = "running", cascade = [CascadeType.ALL], orphanRemoval = true)
     val routes: MutableList<Route> = mutableListOf()
 
-    fun createRoute(locations: List<LocationPointDto>) {
+    fun createRoute(locations: List<LocationPoint>) {
         val groupedLocations = locations.groupBy { it.segmentIndex }
 
         groupedLocations.forEach { (index, pointsInSegment) ->

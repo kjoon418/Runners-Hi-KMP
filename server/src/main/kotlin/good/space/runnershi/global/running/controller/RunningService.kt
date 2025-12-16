@@ -2,7 +2,7 @@ package good.space.runnershi.global.running.controller
 
 import good.space.runnershi.global.running.entity.Running
 import good.space.runnershi.global.running.repository.RunningRepository
-import good.space.runnershi.model.dto.RunCreateRequest
+import good.space.runnershi.model.dto.running.RunCreateRequest
 import good.space.runnershi.user.repository.UserRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service

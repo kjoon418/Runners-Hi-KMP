@@ -1,6 +1,6 @@
 package good.space.runnershi.global.running.entity
 
-import good.space.runnershi.model.dto.LocationPointDto
+import good.space.runnershi.model.dto.running.LocationPoint
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -23,7 +23,7 @@ class Route (
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
 
-    fun createPoints(locationDtos: List<LocationPointDto>){
+    fun createPoints(locationDtos: List<LocationPoint>){
         locationDtos.forEach { dto ->
             val point = Point(
                 latitude = dto.latitude,

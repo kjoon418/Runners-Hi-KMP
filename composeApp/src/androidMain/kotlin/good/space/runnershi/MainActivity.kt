@@ -26,6 +26,7 @@ import good.space.runnershi.auth.AndroidTokenStorage
 import good.space.runnershi.database.LocalRunningDataSource
 import good.space.runnershi.network.ApiClient
 import good.space.runnershi.repository.AuthRepositoryImpl
+import good.space.runnershi.repository.MockRunRepository
 import good.space.runnershi.service.AndroidServiceController
 import good.space.runnershi.shared.di.androidPlatformModule
 import good.space.runnershi.shared.di.initKoin
@@ -76,7 +77,10 @@ class MainActivity : ComponentActivity() {
         val apiClient = ApiClient(tokenStorage, baseUrl)
         val serviceController = AndroidServiceController(this)
 
-        val runningViewModel = RunningViewModel(serviceController)
+        // 5. RunRepository 생성
+        // TODO: 서버 API가 준비되면 RunRepositoryImpl(apiClient)로 변경
+        val runRepository = MockRunRepository() // 테스트용 Mock 데이터 사용
+        val runningViewModel = RunningViewModel(serviceController, runRepository)
         val mainViewModel = MainViewModel(tokenStorage, apiClient)
         val loginViewModel = LoginViewModel(authRepository, tokenStorage)
         val signUpViewModel = SignUpViewModel(authRepository, tokenStorage)
@@ -102,7 +106,7 @@ class MainActivity : ComponentActivity() {
                     dbSource = dbSource,
                     serviceController = serviceController
                 )
-            }
+        }
         }
     }
 }

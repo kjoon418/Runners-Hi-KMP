@@ -20,6 +20,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
+import good.space.runnershi.ui.component.PersonalBestIndicator
 import good.space.runnershi.util.MapsApiKeyChecker
 import good.space.runnershi.util.TimeFormatter
 import good.space.runnershi.viewmodel.MainViewModel
@@ -39,6 +40,7 @@ fun RunningScreen(
     val totalDistance by viewModel.totalDistanceMeters.collectAsState()
     val durationSeconds by viewModel.durationSeconds.collectAsState()
     val isRunning by viewModel.isRunning.collectAsState()
+    val personalBest by viewModel.personalBest.collectAsState() // 최대 기록
 
     // 2. 구글 맵 카메라 상태
     val cameraPositionState = rememberCameraPositionState()
@@ -202,6 +204,12 @@ fun RunningScreen(
                 }
             )
         }
+
+        // --- [D] 최대 기록 인디케이터 (좌측 상단) - 지도 위에 표시 ---
+        PersonalBestIndicator(
+            currentDistanceMeters = totalDistance,
+            pbDistanceMeters = personalBest?.distanceMeters
+        )
 
         // --- [B] 정보 및 컨트롤 패널 (HUD) ---
         Column(

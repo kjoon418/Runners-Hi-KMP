@@ -19,7 +19,7 @@ import kotlinx.serialization.json.Json
 
 class ApiClient(
     private val tokenStorage: TokenStorage,
-    private val baseUrl: String = "https://api.runnershi.com" // TODO: 환경변수로 관리
+    val baseUrl: String = "https://api.runnershi.com" // TODO: 환경변수로 관리
 ) {
     // [핵심] 로그아웃 이벤트를 UI로 전파하기 위한 Flow
     private val _authErrorFlow = MutableSharedFlow<Unit>()

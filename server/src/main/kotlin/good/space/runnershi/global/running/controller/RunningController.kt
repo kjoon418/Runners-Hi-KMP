@@ -1,6 +1,6 @@
 package good.space.runnershi.global.running.controller
 
-import good.space.runnershi.model.dto.RunCreateRequest
+import good.space.runnershi.model.dto.running.RunCreateRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping

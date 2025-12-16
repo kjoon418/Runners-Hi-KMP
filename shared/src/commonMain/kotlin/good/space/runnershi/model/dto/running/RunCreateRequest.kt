@@ -1,4 +1,4 @@
-package good.space.runnershi.model.dto
+package good.space.runnershi.model.dto.running
 
 import kotlinx.serialization.Serializable
 
@@ -9,6 +9,6 @@ data class RunCreateRequest(
     val durationSeconds: Long,
     val startedAt: String, // ISO-8601 형식 (예: "2024-05-20T07:00:00Z")
     // [Body] 경로 데이터 (RDB 저장을 위한 Flat List)
-    val locations: List<LocationPointDto>
+    val locations: List<LocationPoint>
 )
 
