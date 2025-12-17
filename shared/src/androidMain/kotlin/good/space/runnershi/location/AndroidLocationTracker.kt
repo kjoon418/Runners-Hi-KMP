@@ -38,8 +38,8 @@ class AndroidLocationTracker(
                     val model = LocationModel(
                         latitude = location.latitude,
                         longitude = location.longitude,
-                        // altitude = location.altitude, // [삭제] 일반 러닝 앱에서는 불필요
-                        timestamp = location.time
+                        timestamp = location.time,
+                        speed = location.speed // m/s 단위
                     )
                     // Flow로 방출
                     trySend(model) 

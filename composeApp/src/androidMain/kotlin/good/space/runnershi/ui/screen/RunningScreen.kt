@@ -20,6 +20,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
+import good.space.runnershi.service.AndroidServiceController
 import good.space.runnershi.ui.component.PersonalBestIndicator
 import good.space.runnershi.util.MapsApiKeyChecker
 import good.space.runnershi.util.TimeFormatter
@@ -30,7 +31,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun RunningScreen(
     viewModel: RunningViewModel,
-    mainViewModel: MainViewModel
+    mainViewModel: MainViewModel,
+    serviceController: AndroidServiceController // 서비스 제어용 (다이얼로그에서 RESUME 호출 시 필요)
 ) {
     val context = LocalContext.current
     

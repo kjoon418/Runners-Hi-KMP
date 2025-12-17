@@ -1,5 +1,10 @@
 package good.space.runnershi
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -21,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import good.space.runnershi.auth.AndroidTokenStorage
 import good.space.runnershi.database.LocalRunningDataSource
@@ -28,8 +35,10 @@ import good.space.runnershi.network.ApiClient
 import good.space.runnershi.repository.AuthRepositoryImpl
 import good.space.runnershi.repository.MockRunRepository
 import good.space.runnershi.service.AndroidServiceController
+import good.space.runnershi.service.RunningService
 import good.space.runnershi.shared.di.androidPlatformModule
 import good.space.runnershi.shared.di.initKoin
+import good.space.runnershi.ui.component.VehicleDetectedDialog
 import good.space.runnershi.ui.screen.LoginScreen
 import good.space.runnershi.ui.screen.RunResultScreen
 import good.space.runnershi.ui.screen.RunningScreen
@@ -222,7 +231,7 @@ fun AppRoot(
                 dbSource = dbSource,
                 serviceController = serviceController,
                 content = {
-                    AppContent(runningViewModel, mainViewModel)
+                    AppContent(runningViewModel, mainViewModel, serviceController)
                 }
             )
         }
@@ -261,9 +270,31 @@ fun AuthFlow(
 @Composable
 fun AppContent(
     viewModel: RunningViewModel,
-    mainViewModel: MainViewModel
+    mainViewModel: MainViewModel,
+    serviceController: AndroidServiceController // 서비스 제어를 위해 필요
 ) {
     val runResult by viewModel.runResult.collectAsState()
+    
+    // 다이얼로그 상태 관리
+    var showVehicleDialog by remember { mutableStateOf(false) }
+    
+    // 브로드캐스트 수신 시 다이얼로그 ON
+    OverSpeedObserver(
+        onOverSpeedDetected = {
+            showVehicleDialog = true
+        }
+    )
+
+    // 다이얼로그 표시 (최상위 레벨)
+    if (showVehicleDialog) {
+        VehicleDetectedDialog(
+            onDismiss = { showVehicleDialog = false },
+            onResumeRun = {
+                serviceController.resumeService()
+                showVehicleDialog = false
+            }
+        )
+    }
 
     if (runResult != null) {
         RunResultScreen(
@@ -273,8 +304,45 @@ fun AppContent(
     } else {
         RunningScreen(
             viewModel = viewModel,
-            mainViewModel = mainViewModel
+            mainViewModel = mainViewModel,
+            serviceController = serviceController
         )
+    }
+}
+
+/**
+ * 과속 감지 이벤트를 수신하여 사용자에게 알림을 표시하는 Composable
+ */
+@Composable
+fun OverSpeedObserver(
+    onOverSpeedDetected: () -> Unit
+) {
+    val context = LocalContext.current
+    
+    DisposableEffect(Unit) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == RunningService.ACTION_OVER_SPEED_DETECTED) {
+                    // 토스트 대신 콜백 호출 -> 다이얼로그 트리거
+                    onOverSpeedDetected()
+                }
+            }
+        }
+        
+        val filter = IntentFilter(RunningService.ACTION_OVER_SPEED_DETECTED)
+        
+        // Android 13+ 호환성 플래그 (하위 호환성을 위해 모든 버전에서 플래그 사용)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            // Android 13 미만에서는 플래그가 없어도 되지만, 명시적으로 추가하여 경고 방지
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            context.registerReceiver(receiver, filter)
+        }
+
+        onDispose {
+            context.unregisterReceiver(receiver)
+        }
     }
 }
 
