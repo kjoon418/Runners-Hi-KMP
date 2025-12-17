@@ -97,7 +97,13 @@ class MainActivity : ComponentActivity() {
         // 2. DB 및 ServiceController 준비
         val dbSource = LocalRunningDataSource(this)
         
-        // 3. 로그아웃 시 DB 데이터 삭제 및 서비스 중지 콜백 설정
+        // 3. 러닝 종료 시 RoomDB 초기화 콜백 설정
+        runningViewModel.onFinishCallback = {
+            // 서버 저장 성공 또는 기록 미달 시 RoomDB 데이터 삭제
+            dbSource.discardRun()
+        }
+        
+        // 4. 로그아웃 시 DB 데이터 삭제 및 서비스 중지 콜백 설정
         mainViewModel.onLogoutCallback = {
             // 1. 서비스를 먼저 중지 (위치 추적 및 DB 저장 중단)
             serviceController.stopService()
@@ -275,6 +281,8 @@ fun AppContent(
     serviceController: AndroidServiceController // 서비스 제어를 위해 필요
 ) {
     val runResult by viewModel.runResult.collectAsState()
+    // 업로드 상태 구독
+    val uploadState by viewModel.uploadState.collectAsState()
     
     // 다이얼로그 상태 관리
     var showVehicleDialog by remember { mutableStateOf(false) }
@@ -300,6 +308,7 @@ fun AppContent(
     if (runResult != null) {
         RunResultScreen(
             result = runResult!!,
+            uploadState = uploadState,
             onClose = { viewModel.closeResultScreen() }
         )
     } else {

@@ -169,9 +169,15 @@ class RunningService : Service() {
         stopLocationTracking()
         timerJob?.cancel()
         
-        // DB 세션 종료 마킹
+        // DB 세션 종료 마킹 및 삭제 (서버 저장 성공 또는 기록 미달 시 즉시 삭제)
+        // 주의: 서버 업로드 실패 시에는 재전송을 위해 데이터를 유지해야 하지만,
+        // 현재는 finishRun()에서 완료 마킹 후 즉시 삭제하도록 변경
+        // (서버 업로드는 RunningViewModel에서 처리되므로, 여기서는 완료 마킹만 하고 삭제는 ViewModel 콜백에서 처리)
         serviceScope.launch {
             dbSource.finishRun()
+            // 완료 마킹 후 즉시 삭제 (앱 강제 종료 시에도 데이터가 남지 않도록)
+            // 서버 업로드는 이미 완료되었거나 기록 미달이므로 삭제해도 안전
+            dbSource.discardRun()
         }
         
         stopForeground(STOP_FOREGROUND_REMOVE)

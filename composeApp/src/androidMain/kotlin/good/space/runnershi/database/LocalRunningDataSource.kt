@@ -13,7 +13,14 @@ class LocalRunningDataSource(context: Context) {
     private var currentSegmentIndex: Int = 0
 
     // 1. 러닝 시작 (DB 세션 생성)
-    suspend fun startRun() {
+    suspend fun startRun() = withContext(Dispatchers.IO) {
+        // 기존 세션이 있으면 삭제 (새로운 러닝 시작 전 정리)
+        val existingSession = dao.getUnfinishedSession()
+        if (existingSession != null) {
+            // 기존 미완료 세션 삭제
+            dao.deleteSessionById(existingSession.runId)
+        }
+        
         val runId = UUID.randomUUID().toString()
         currentRunId = runId
         currentSegmentIndex = 0
@@ -62,9 +69,11 @@ class LocalRunningDataSource(context: Context) {
 
     // 4. 러닝 종료 (완료 마킹)
     suspend fun finishRun() {
-        currentRunId?.let { dao.finishSession(it) }
+        val runId = currentRunId
+        runId?.let { dao.finishSession(it) }
         currentRunId = null
         currentSegmentIndex = 0
+        // runId는 반환하지 않지만, discardCurrentRun()에서 최신 완료 세션을 삭제할 수 있도록 함
     }
 
     // 5-1. [감지] 복구할 데이터가 있는지 확인만 하는 함수 (UI 트리거용)
@@ -118,10 +127,18 @@ class LocalRunningDataSource(context: Context) {
 
     // 5-3. [폐기] 복구 거부 시 데이터 삭제 (사용자가 "아니요" 했을 때)
     suspend fun discardRun() = withContext(Dispatchers.IO) {
+        // 먼저 미완료 세션 확인
         val unfinishedSession = dao.getUnfinishedSession()
-        unfinishedSession?.let {
-            // DB에서 해당 세션 삭제 (CASCADE로 좌표도 삭제됨)
-            dao.deleteSessionById(it.runId)
+        if (unfinishedSession != null) {
+            // 미완료 세션이 있으면 삭제
+            dao.deleteSessionById(unfinishedSession.runId)
+        } else {
+            // 미완료 세션이 없으면 최신 완료 세션 삭제 (러닝 종료 후 호출되는 경우)
+            // 최신 세션(완료 포함)을 가져와서 삭제
+            val latestSession = dao.getLatestSession()
+            latestSession?.let {
+                dao.deleteSessionById(it.runId)
+            }
         }
         currentRunId = null
         currentSegmentIndex = 0
