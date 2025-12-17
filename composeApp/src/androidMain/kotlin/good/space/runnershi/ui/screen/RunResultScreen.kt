@@ -2,6 +2,11 @@ package good.space.runnershi.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +20,7 @@ import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.*
 import good.space.runnershi.model.domain.RunResult
 import good.space.runnershi.util.TimeFormatter
+import good.space.runnershi.util.format
 
 @Composable
 fun RunResultScreen(
@@ -22,6 +28,11 @@ fun RunResultScreen(
     onClose: () -> Unit
 ) {
     val cameraPositionState = rememberCameraPositionState()
+    
+    // 저장 조건 체크 (ViewModel의 로직과 동일하게 유지)
+    val isSaved = remember(result) {
+        result.totalDistanceMeters >= 100.0 && result.durationSeconds >= 60
+    }
 
     // 화면 진입 시 전체 경로가 보이도록 줌 아웃 (LatLngBounds)
     LaunchedEffect(Unit) {
@@ -34,15 +45,26 @@ fun RunResultScreen(
                 cameraPositionState.move(
                     CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 100) // 100px padding
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // 경로가 너무 작거나 없을 때 예외 처리
             }
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
-        // [상단] 지도 스냅샷 (조작 불가)
-        Box(modifier = Modifier.weight(1f)) {
+    // 스크롤 가능한 컬럼 사용
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .verticalScroll(rememberScrollState())
+    ) {
+        // 저장되지 않은 경우에만 배너 표시
+        if (!isSaved) {
+            NotSavedWarningBanner()
+        }
+
+        // [상단] 지도 스냅샷 (조작 불가, 높이 고정)
+        Box(modifier = Modifier.height(300.dp).fillMaxWidth()) {
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
@@ -82,7 +104,7 @@ fun RunResultScreen(
                 modifier = Modifier.fillMaxWidth(), 
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                ResultItem("Distance", String.format("%.2f km", result.totalDistanceMeters / 1000))
+                ResultItem("Distance", "%.2f km".format(result.totalDistanceMeters / 1000))
                 ResultItem("Time", TimeFormatter.formatSecondsToTime(result.durationSeconds))
                 ResultItem("Pace", result.avgPace)
             }
@@ -95,6 +117,53 @@ fun RunResultScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
             ) {
                 Text("SAVE & CLOSE")
+            }
+        }
+    }
+}
+
+@Composable
+fun NotSavedWarningBanner() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp), // 좌우, 상하 여백
+        colors = CardDefaults.cardColors(
+            // Material3의 에러 색상 테마 사용 (자동으로 다크모드 대응)
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        ),
+        shape = RoundedCornerShape(12.dp) // 둥근 모서리
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp) // 내부 여백
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.Top // 텍스트가 길어질 경우를 대비해 상단 정렬
+        ) {
+            // 1. 아이콘
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = "Warning",
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(24.dp)
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // 2. 텍스트 영역
+            Column {
+                Text(
+                    text = "이 기록은 저장되지 않습니다",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "유효한 러닝 기록(거리 100m 이상, 시간 1분 이상)만 히스토리에 저장됩니다.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
             }
         }
     }

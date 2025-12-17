@@ -69,22 +69,33 @@ class RunningViewModel(
         serviceController.stopService()
     }
     
-    // 러닝 종료 버튼을 눌렀을 때 호출
+    // 러닝 종료 (통합된 함수)
     fun finishRun() {
-        // 1. 현재 상태를 스냅샷으로 저장 (데이터 캡처)
+        // 1. 현재 상태 캡처
         val result = createRunResultSnapshot()
-        
-        // 2. 서비스 및 위치 추적 완전 종료
+
+        // 2. 서비스 종료 및 초기화 (무조건 실행)
         serviceController.stopService()
-        
-        // 3. 상태 매니저 초기화 (다음 러닝을 위해)
         RunningStateManager.reset()
 
-        // 4. 결과 화면에 데이터 전달 (UI 전환 트리거)
+        // 3. 결과 화면으로 이동 (무조건 실행)
+        // 기록이 짧든 길든 사용자는 "완료 화면"을 보게 됩니다.
         _runResult.value = result
 
-        // 5. (비동기) 서버로 데이터 전송
-        uploadRunData(result)
+        // 4. 서버 전송 여부 판단 (백그라운드 처리)
+        if (shouldUploadToServer(result)) {
+            // 조건 충족: 서버에 저장
+            uploadRunData(result)
+        } else {
+            // 조건 미달: 서버 전송 안 함 (로그만 남김)
+            // 사용자는 결과 화면을 보고 있지만, 이 데이터는 서버에 남지 않습니다.
+            println("⚠️ 기록 미달로 서버 저장 건너뜀 (거리: ${result.totalDistanceMeters}m, 시간: ${result.durationSeconds}초)")
+        }
+    }
+    
+    // 서버 전송 조건 검사
+    private fun shouldUploadToServer(result: RunResult): Boolean {
+        return result.totalDistanceMeters >= 100.0 && result.durationSeconds >= 60
     }
 
     private fun createRunResultSnapshot(): RunResult {
