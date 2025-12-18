@@ -23,8 +23,10 @@ class SecurityConfig (
     companion object {
         private val ALLOWED_ORIGINS = listOf(
             "http://localhost:3000",
+            "http://localhost:5173",
             "https://runners-hi.site",
-            "https://api.runners-hi.site"
+            "https://api.runners-hi.site",
+            "https://runners-hi-front-end.vercel.app"
         )
 
         private val ALLOWED_METHODS = listOf(
