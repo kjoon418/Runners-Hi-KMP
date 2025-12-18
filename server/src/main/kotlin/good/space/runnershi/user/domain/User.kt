@@ -1,9 +1,11 @@
 package good.space.runnershi.user.domain
 
+import good.space.runnershi.global.running.converter.KotlinLocalDateConverter
 import good.space.runnershi.model.dto.running.RunCreateRequest
 import good.space.runnershi.user.UserType
 import jakarta.persistence.CollectionTable
 import jakarta.persistence.Column
+import jakarta.persistence.Convert
 import jakarta.persistence.ElementCollection
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -16,7 +18,11 @@ import jakarta.persistence.Inheritance
 import jakarta.persistence.InheritanceType
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.Table
-import kotlin.io.path.Path
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toJavaInstant
+import kotlinx.datetime.toKotlinLocalDate
+import java.time.ZoneId
+import kotlin.time.DurationUnit
 
 @Inheritance(strategy = InheritanceType.JOINED)
 @Entity
@@ -35,26 +41,22 @@ abstract class User(
     var id: Long? = null
 
     var exp: Long = 0;
-
     var totalRunningDays: Long = 0
-
     var totalDistanceMeters: Double = 300.0
-
     var totalRunningHours: Double = 0.0
-
     var bestPace: Double = 0.0
-
     var longestDistanceMeters: Double = 0.0
-
     var averagePace: Double = 0.0
 
+    @Convert(converter = KotlinLocalDateConverter::class)
+    var lastRunDate: LocalDate? = null
 
     @ElementCollection(targetClass = Achievement::class, fetch = FetchType.LAZY)
     @CollectionTable(
-        name = "user_achievements", // 실제 생길 테이블 이름
+        name = "user_achievements",
         joinColumns = [JoinColumn(name = "user_id")]
     )
-    @Enumerated(EnumType.STRING) // DB에 "CUMULATIVE_LV1" 문자열로 저장
+    @Enumerated(EnumType.STRING)
     @Column(name = "achievement")
     val achievements: MutableSet<Achievement> = mutableSetOf()
 
@@ -63,24 +65,38 @@ abstract class User(
     }
 
     fun updateRunningStats(request: RunCreateRequest) {
-        val pace: Double = request.durationSeconds.toDouble() * (1000.0 / request.distanceMeters)
+        val durationSeconds = request.runningDuration.toDouble(DurationUnit.SECONDS)
+        val pace: Double = durationSeconds * (1000.0 / request.distanceMeters)
         val distanceMeters: Double = 0.0
 
         this.totalDistanceMeters += request.distanceMeters.toLong()
 
-        this.totalRunningHours += request.durationSeconds / 60.0
+        this.totalRunningHours += durationSeconds / 3600.0
 
         if (distanceMeters > this.longestDistanceMeters) {
             this.longestDistanceMeters = request.distanceMeters
         }
 
+
         if (this.bestPace == 0.0 || pace < this.bestPace) {
             this.bestPace = pace
         }
 
-        averagePace = (averagePace + pace) / 2
+        if (totalDistanceMeters > 0) {
+            val totalSeconds = totalRunningHours * 3600
+            this.averagePace = totalSeconds * (1000.0 / totalDistanceMeters)
+        }
 
-        this.totalRunningDays += 1
+        val currentRunDate = request.startedAt
+            .toJavaInstant()
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+            .toKotlinLocalDate()
+
+        if (this.lastRunDate == null || this.lastRunDate != currentRunDate) {
+            this.totalRunningDays += 1
+            this.lastRunDate = currentRunDate
+        }
 
         updateAchievement()
     }
