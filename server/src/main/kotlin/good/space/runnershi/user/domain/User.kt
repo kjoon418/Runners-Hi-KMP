@@ -67,13 +67,12 @@ abstract class User(
     fun updateRunningStats(request: RunCreateRequest) {
         val durationSeconds = request.runningDuration.toDouble(DurationUnit.SECONDS)
         val pace: Double = durationSeconds * (1000.0 / request.distanceMeters)
-        val distanceMeters: Double = 0.0
 
         this.totalDistanceMeters += request.distanceMeters.toLong()
 
         this.totalRunningHours += durationSeconds / 3600.0
 
-        if (distanceMeters > this.longestDistanceMeters) {
+        if (request.distanceMeters > this.longestDistanceMeters) {
             this.longestDistanceMeters = request.distanceMeters
         }
 

@@ -2,6 +2,7 @@ package good.space.runnershi.global.running.controller
 
 import good.space.runnershi.global.running.service.RunningService
 import good.space.runnershi.model.dto.running.RunCreateRequest
+import good.space.runnershi.model.dto.running.UpdatedUserResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
@@ -19,14 +20,11 @@ class RunningController (
 ){
     @Operation(summary = "러닝 데이터 저장", description = "클라이언트가 러닝 종료를 눌렀을 때, 서버에 러닝데이터가 저장되는 API입니다.")
     @PostMapping("/run-records")
-    fun saveRunning(
+    fun applyRunningStats(
         @AuthenticationPrincipal userId: Long,
         @RequestBody runCreateRequest: RunCreateRequest
-    ): ResponseEntity<Long> {
-        val runId = runningService.createRunning(userId, runCreateRequest)
+    ): ResponseEntity<UpdatedUserResponse> {
 
-        runningService.updateUserByRunnig(userId, runCreateRequest)
-
-        return ResponseEntity.ok(runId)
+        return ResponseEntity.ok(runningService.saveRunningStats(userId, runCreateRequest))
     }
 }
