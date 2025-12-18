@@ -1,4 +1,4 @@
-package good.space.runnershi.global.auth
+package good.space.runnershi.auth
 
 import good.space.runnershi.global.security.JwtPlugin
 import good.space.runnershi.model.dto.auth.LoginRequest

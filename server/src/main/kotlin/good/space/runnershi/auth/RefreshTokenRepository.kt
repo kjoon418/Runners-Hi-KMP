@@ -1,4 +1,4 @@
-package good.space.runnershi.global.auth
+package good.space.runnershi.auth
 
 import org.springframework.data.jpa.repository.JpaRepository
 

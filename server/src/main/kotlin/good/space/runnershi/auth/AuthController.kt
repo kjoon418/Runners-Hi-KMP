@@ -1,4 +1,4 @@
-package good.space.runnershi.global.auth
+package good.space.runnershi.auth
 import good.space.runnershi.model.dto.auth.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter

@@ -19,11 +19,13 @@ class RunningController (
 ){
     @Operation(summary = "러닝 데이터 저장", description = "클라이언트가 러닝 종료를 눌렀을 때, 서버에 러닝데이터가 저장되는 API입니다.")
     @PostMapping("/run-records")
-    fun createRunning(
+    fun saveRunning(
         @AuthenticationPrincipal userId: Long,
         @RequestBody runCreateRequest: RunCreateRequest
     ): ResponseEntity<Long> {
         val runId = runningService.createRunning(userId, runCreateRequest)
+
+        runningService.updateUserByRunnig(userId, runCreateRequest)
 
         return ResponseEntity.ok(runId)
     }

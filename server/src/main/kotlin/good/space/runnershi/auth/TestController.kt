@@ -1,4 +1,4 @@
-package good.space.runnershi.global.auth
+package good.space.runnershi.auth
 
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping

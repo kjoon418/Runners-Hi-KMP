@@ -1,4 +1,4 @@
-package good.space.runnershi.global.auth
+package good.space.runnershi.auth
 
 import good.space.runnershi.user.domain.User
 import jakarta.persistence.Column
