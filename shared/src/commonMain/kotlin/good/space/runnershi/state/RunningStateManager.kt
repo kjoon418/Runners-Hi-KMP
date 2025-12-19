@@ -32,6 +32,10 @@ object RunningStateManager {
     private val _pauseType = MutableStateFlow(PauseType.NONE)
     val pauseType: StateFlow<PauseType> = _pauseType.asStateFlow()
 
+    // [New] 차량 감지 경고 횟수 (0부터 시작)
+    private val _vehicleWarningCount = MutableStateFlow(0)
+    val vehicleWarningCount: StateFlow<Int> = _vehicleWarningCount.asStateFlow()
+
     // 상태 업데이트 함수들 (Service에서 호출)
     fun updateLocation(location: LocationModel, distanceDelta: Double) {
         _currentLocation.value = location
@@ -67,6 +71,13 @@ object RunningStateManager {
     }
     
     /**
+     * 차량 경고 횟수 증가
+     */
+    fun incrementVehicleWarningCount() {
+        _vehicleWarningCount.value += 1
+    }
+    
+    /**
      * 일시정지 (Atomic Update: isRunning과 pauseType을 동시에 변경)
      * UI가 한 번에 완벽한 상태로 그려지도록 보장합니다.
      */
@@ -92,6 +103,7 @@ object RunningStateManager {
         _isRunning.value = false
         _startTime.value = null
         _pauseType.value = PauseType.NONE
+        _vehicleWarningCount.value = 0 // 러닝 시작 시 0으로 리셋
     }
     
     // 러닝 시작 시간 설정 (첫 START 버튼 클릭 시)
