@@ -8,6 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -122,13 +123,81 @@ fun RunResultScreen(
             )
             Spacer(modifier = Modifier.height(24.dp))
 
+            // 메인 통계 (거리, 시간)
             Row(
                 modifier = Modifier.fillMaxWidth(), 
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 ResultItem("Distance", "%.2f km".format(result.totalDistanceMeters / 1000))
                 ResultItem("Time", TimeFormatter.formatSecondsToTime(result.duration.inWholeSeconds))
-                ResultItem("Pace", result.avgPace)
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // 페이스 분석 카드
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                elevation = CardDefaults.cardElevation(2.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "페이스 분석",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        // 1. 이동 페이스 (Moving Pace)
+                        StatItem(
+                            label = "이동 페이스",
+                            value = result.movingPace,
+                            subLabel = "(휴식 제외)"
+                        )
+                        
+                        // 2. 전체 페이스 (Elapsed Pace)
+                        StatItem(
+                            label = "전체 페이스",
+                            value = result.elapsedPace,
+                            subLabel = "(휴식 포함)"
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider(modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // 시간 분석
+                    Text(
+                        text = "시간 분석",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        StatItem(
+                            label = "이동 시간",
+                            value = TimeFormatter.formatSecondsToTime(result.duration.inWholeSeconds)
+                        )
+                        StatItem(
+                            label = "총 소요 시간",
+                            value = TimeFormatter.formatSecondsToTime(result.totalTime.inWholeSeconds)
+                        )
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(32.dp))
@@ -214,6 +283,35 @@ fun ResultItem(label: String, value: String) {
             fontWeight = FontWeight.Bold, 
             style = MaterialTheme.typography.titleLarge
         )
+    }
+}
+
+@Composable
+fun StatItem(label: String, value: String, subLabel: String? = null) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth(0.45f)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        if (subLabel != null) {
+            Text(
+                text = subLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.LightGray,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 

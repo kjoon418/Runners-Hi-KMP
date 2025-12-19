@@ -12,8 +12,8 @@ import good.space.runnershi.MainActivity
 import good.space.runnershi.database.LocalRunningDataSource
 import good.space.runnershi.location.AndroidLocationTracker
 import good.space.runnershi.model.domain.location.LocationModel
-import good.space.runnershi.model.domain.location.MovementAnalyzer
-import good.space.runnershi.model.domain.location.MovementStatus
+import good.space.runnershi.model.domain.running.MovementAnalyzer
+import good.space.runnershi.model.domain.running.MovementStatus
 import good.space.runnershi.settings.AndroidSettingsRepository
 import good.space.runnershi.state.PauseType
 import good.space.runnershi.state.RunningStateManager

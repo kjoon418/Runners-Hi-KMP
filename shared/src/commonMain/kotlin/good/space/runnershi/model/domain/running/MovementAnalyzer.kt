@@ -1,5 +1,6 @@
-package good.space.runnershi.model.domain.location
+package good.space.runnershi.model.domain.running
 
+import good.space.runnershi.model.domain.location.LocationModel
 import kotlinx.datetime.Clock
 
 /**

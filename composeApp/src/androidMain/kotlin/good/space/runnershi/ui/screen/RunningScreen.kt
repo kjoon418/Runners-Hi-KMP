@@ -33,6 +33,8 @@ import good.space.runnershi.util.MapsApiKeyChecker
 import good.space.runnershi.util.TimeFormatter
 import good.space.runnershi.viewmodel.MainViewModel
 import good.space.runnershi.viewmodel.RunningViewModel
+import kotlin.math.pow
+import kotlin.math.sqrt
 import kotlinx.coroutines.launch
 
 @Composable
@@ -51,6 +53,9 @@ fun RunningScreen(
     val isRunning by viewModel.isRunning.collectAsState()
     val personalBest by viewModel.personalBest.collectAsState() // 최대 기록
     val pauseType by viewModel.pauseType.collectAsState()
+    
+    // [New] 페이스 상태 구독
+    val currentPace by viewModel.currentPace.collectAsState()
     
     // [New] 차량 경고 횟수 구독
     val vehicleWarningCount by viewModel.vehicleWarningCount.collectAsState()
@@ -83,16 +88,28 @@ fun RunningScreen(
     }
 
     // 4. 위치가 바뀔 때마다 카메라 이동 (Follow User)
+    var lastAnimatedLocation by remember { mutableStateOf<LatLng?>(null) }
     LaunchedEffect(currentLocation) {
         currentLocation?.let { loc ->
             val latLng = LatLng(loc.latitude, loc.longitude)
-            // 줌 레벨 17f 정도로 부드럽게 이동
-            cameraPositionState.animate(
-                CameraUpdateFactory.newCameraPosition(
-                    CameraPosition.fromLatLngZoom(latLng, 17f)
-                ),
-                1000 // 1초 동안 애니메이션
-            )
+            // 이전 위치와 거리가 충분히 멀 때만 카메라 이동 (무한 애니메이션 방지)
+            val shouldAnimate = lastAnimatedLocation?.let { last ->
+                val latDiff = latLng.latitude - last.latitude
+                val lngDiff = latLng.longitude - last.longitude
+                val distance = sqrt(latDiff.pow(2.0) + lngDiff.pow(2.0))
+                distance > 0.0001 // 약 10m 이상 이동했을 때만 애니메이션
+            } ?: true // 첫 위치는 항상 애니메이션
+            
+            if (shouldAnimate) {
+                lastAnimatedLocation = latLng
+                // 줌 레벨 17f 정도로 부드럽게 이동
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newCameraPosition(
+                        CameraPosition.fromLatLngZoom(latLng, 17f)
+                    ),
+                    1000 // 1초 동안 애니메이션
+                )
+            }
         }
     }
     
@@ -206,6 +223,7 @@ fun RunningScreen(
             isRunning = isRunning,
             durationSeconds = durationSeconds,
             totalDistance = totalDistance,
+            currentPace = currentPace,
             onStartResume = { viewModel.startRun() },
             onPause = { viewModel.pauseRun() },
             onFinish = { viewModel.finishRun() }
@@ -335,6 +353,7 @@ fun RunControlPanel(
     isRunning: Boolean,
     durationSeconds: Long,
     totalDistance: Double,
+    currentPace: String,
     onStartResume: () -> Unit,
     onPause: () -> Unit,
     onFinish: () -> Unit
@@ -347,14 +366,19 @@ fun RunControlPanel(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 타이머 & 거리 정보
+        // [Mod] 타이머 & 페이스 & 거리 정보 (3열 배치로 변경)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.SpaceEvenly // 균등 배치
         ) {
             RunStatItem(
                 label = "TIME",
                 value = TimeFormatter.formatSecondsToTime(durationSeconds)
+            )
+            // [New] 가운데에 PACE 추가
+            RunStatItem(
+                label = "PACE",
+                value = currentPace
             )
             RunStatItem(
                 label = "DISTANCE",
