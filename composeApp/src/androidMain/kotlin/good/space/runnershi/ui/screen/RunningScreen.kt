@@ -51,6 +51,12 @@ fun RunningScreen(
     val isRunning by viewModel.isRunning.collectAsState()
     val personalBest by viewModel.personalBest.collectAsState() // 최대 기록
     val pauseType by viewModel.pauseType.collectAsState()
+    
+    // [New] 차량 경고 횟수 구독
+    val vehicleWarningCount by viewModel.vehicleWarningCount.collectAsState()
+    
+    // [New] 강제 종료 다이얼로그 표시 여부 상태
+    var showForcedFinishDialog by remember { mutableStateOf(false) }
 
     // 2. 구글 맵 카메라 상태
     val cameraPositionState = rememberCameraPositionState()
@@ -87,6 +93,13 @@ fun RunningScreen(
                 ),
                 1000 // 1초 동안 애니메이션
             )
+        }
+    }
+    
+    // [Logic Change] 2회 누적 시 -> 즉시 종료가 아니라 '다이얼로그'를 띄움
+    LaunchedEffect(vehicleWarningCount) {
+        if (vehicleWarningCount >= 2) {
+            showForcedFinishDialog = true
         }
     }
 
@@ -198,8 +211,18 @@ fun RunningScreen(
             onFinish = { viewModel.finishRun() }
         )
         
-        // --- [New] 과속 감지 경고 다이얼로그 (최상위) ---
-        if (pauseType == PauseType.AUTO_PAUSE_VEHICLE) {
+        // [New] 2회 누적 강제 종료 알림 다이얼로그 (최우선)
+        if (showForcedFinishDialog) {
+            ForcedFinishDialog(
+                onConfirm = {
+                    // 사용자가 확인 버튼을 누르면 비로소 종료 처리 및 화면 이동
+                    viewModel.finishRun()
+                }
+            )
+        }
+        
+        // [Mod] 1회차 경고 다이얼로그 (조건: 카운트가 2 미만일 때만)
+        if (pauseType == PauseType.AUTO_PAUSE_VEHICLE && vehicleWarningCount < 2) {
             VehicleWarningDialog(
                 onResume = { 
                     // 경고를 무시하고 다시 달리기
@@ -236,7 +259,7 @@ fun VehicleWarningDialog(onResume: () -> Unit, onFinishRun: () -> Unit) {
             Text(
                 text = "차량 탑승이 감지되어 기록을 일시정지했습니다.\n이동 데이터는 저장되지 않았습니다.\n\n계속 뛰시겠습니까?",
                 textAlign = TextAlign.Center
-            ) 
+            )
         },
         confirmButton = {
             Button(
@@ -251,6 +274,58 @@ fun VehicleWarningDialog(onResume: () -> Unit, onFinishRun: () -> Unit) {
                 Text("러닝 종료", color = Color.Red)
             }
         }
+    )
+}
+
+/**
+ * [New] 강제 종료 안내 다이얼로그 컴포넌트
+ * 차량 탑승이 2회 이상 감지되어 러닝이 강제 종료되었을 때 표시됩니다.
+ */
+@Composable
+fun ForcedFinishDialog(onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = { 
+            // 뒤로가기 키를 눌러도 종료 처리 (다이얼로그만 닫히고 맵에 남는 것 방지)
+            onConfirm() 
+        },
+        icon = { 
+            Icon(
+                imageVector = Icons.Default.Warning, 
+                contentDescription = null, 
+                tint = Color.Red
+            ) 
+        },
+        title = { 
+            Text(
+                text = "러닝이 종료되었습니다",
+                fontWeight = FontWeight.Bold
+            ) 
+        },
+        text = { 
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "차량 탑승이 반복 감지되었습니다.",
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "데이터 정확도를 위해\n현재까지의 기록으로 러닝을 마칩니다.",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("결과 확인하기")
+            }
+        },
+        // dismissButton은 없음 (선택권 없음, 무조건 종료)
     )
 }
 

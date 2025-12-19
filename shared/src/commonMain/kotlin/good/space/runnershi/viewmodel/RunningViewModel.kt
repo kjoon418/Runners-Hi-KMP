@@ -34,6 +34,7 @@ class RunningViewModel(
     val durationSeconds: StateFlow<Long> = RunningStateManager.durationSeconds
     val isRunning: StateFlow<Boolean> = RunningStateManager.isRunning
     val pauseType: StateFlow<PauseType> = RunningStateManager.pauseType
+    val vehicleWarningCount: StateFlow<Int> = RunningStateManager.vehicleWarningCount
 
     // 결과 화면 표시 여부 및 데이터
     private val _runResult = MutableStateFlow<RunResult?>(null)

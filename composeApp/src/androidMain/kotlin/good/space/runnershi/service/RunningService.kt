@@ -224,17 +224,29 @@ class RunningService : Service() {
     private fun handleStatusChange(newStatus: MovementStatus) {
         when (newStatus) {
             MovementStatus.VEHICLE -> {
-                // 과속 감지: 자동 일시정지
-                performAutoPause(PauseType.AUTO_PAUSE_VEHICLE)
+                // 1. 경고 횟수를 1 올립니다.
+                RunningStateManager.incrementVehicleWarningCount()
+                val currentCount = RunningStateManager.vehicleWarningCount.value
+                
+                android.util.Log.w("RunningService", "🚨 과속 감지! 누적 횟수: $currentCount")
+
+                // 2. 횟수에 따라 처분을 결정합니다.
+                if (currentCount >= 2) {
+                    // [2회 이상] 아웃! -> 강제 종료 로직 실행
+                    handleForcedFinishByVehicle()
+                } else {
+                    // [1회차] 경고! -> 일시정지하고 기회 줌
+                    performAutoPause(PauseType.AUTO_PAUSE_VEHICLE)
+                }
             }
             MovementStatus.STOPPED -> {
-                // 정지 감지: 자동 퍼즈 기능이 활성화되어 있으면 일시정지
+                // (기존 동일) 동기적으로 설정 확인
                 if (settingsRepository.isAutoPauseEnabledSync()) {
                     performAutoPause(PauseType.AUTO_PAUSE_REST)
                 }
             }
             MovementStatus.MOVING -> {
-                // 이동 감지: 휴식으로 멈춘 게 아니라면 자동 재개
+                // (기존 동일) 자동 재개 로직
                 val pauseType = RunningStateManager.pauseType.value
                 if (!RunningStateManager.isRunning.value && 
                     pauseType == PauseType.AUTO_PAUSE_REST) {
@@ -362,6 +374,51 @@ class RunningService : Service() {
     private fun updateNotification(time: String, distance: String) {
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(NOTIFICATION_ID, buildNotification(time, distance))
+    }
+    
+    /**
+     * 제목과 내용을 지정하여 알림을 업데이트하는 함수
+     */
+    private fun updateNotificationWithTitle(title: String, content: String) {
+        val openAppIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, openAppIntent, 
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(content)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .build()
+            
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIFICATION_ID, notification)
+    }
+    
+    /**
+     * [New] 강제 종료 헬퍼 함수
+     */
+    private fun handleForcedFinishByVehicle() {
+        android.util.Log.e("RunningService", "🚨 차량 감지 2회 누적! 러닝을 강제 종료합니다.")
+        
+        // 1. 상태를 '차량 감지 일시정지'로 변경 
+        // (서비스가 직접 종료하지 않고, UI가 이 상태를 보고 종료 절차를 밟게 유도함)
+        RunningStateManager.pause(PauseType.AUTO_PAUSE_VEHICLE)
+
+        // 2. 알림 내용을 '강제 종료'로 변경
+        updateNotificationWithTitle(
+            "러닝 강제 종료", 
+            "반복된 차량 이동이 감지되어 기록을 종료합니다."
+        )
+        
+        // 3. 더 이상 위치 추적 불필요 (배터리 절약)
+        stopLocationTracking()
+        timerJob?.cancel()
     }
     
     private fun calculateDistanceString(): String {
