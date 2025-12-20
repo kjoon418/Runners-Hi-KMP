@@ -235,7 +235,7 @@ fun AppRoot(
                 dbSource = dbSource,
                 serviceController = serviceController,
                 content = {
-                    AppContent(runningViewModel, mainViewModel, serviceController)
+                    AppContent(runningViewModel, mainViewModel)
                 }
             )
         }
@@ -274,8 +274,7 @@ fun AuthFlow(
 @Composable
 fun AppContent(
     viewModel: RunningViewModel,
-    mainViewModel: MainViewModel,
-    serviceController: AndroidServiceController // 서비스 제어를 위해 필요
+    mainViewModel: MainViewModel
 ) {
     val runResult by viewModel.runResult.collectAsState()
     // 업로드 상태 구독
@@ -290,8 +289,7 @@ fun AppContent(
     } else {
         RunningScreen(
             viewModel = viewModel,
-            mainViewModel = mainViewModel,
-            serviceController = serviceController
+            mainViewModel = mainViewModel
         )
     }
 }

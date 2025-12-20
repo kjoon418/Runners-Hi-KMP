@@ -2,24 +2,24 @@ package good.space.runnershi.viewmodel
 
 import good.space.runnershi.model.domain.RunResult
 import good.space.runnershi.model.domain.location.LocationModel
+import good.space.runnershi.model.domain.running.PaceCalculator
 import good.space.runnershi.model.dto.running.PersonalBestResponse
 import good.space.runnershi.repository.RunRepository
 import good.space.runnershi.service.ServiceController
 import good.space.runnershi.state.PauseType
 import good.space.runnershi.state.RunningStateManager
-import good.space.runnershi.model.domain.running.PaceCalculator
-import good.space.runnershi.util.format
+import good.space.runnershi.util.CalorieCalculator
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
@@ -56,6 +56,20 @@ class RunningViewModel(
             scope = scope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = "-'--''"
+        )
+
+    // 거리가 늘어날 때만 갱신됩니다.
+    val currentCalories: StateFlow<Int> = totalDistanceMeters
+        .map { distance ->
+            // 추후에는 UserProfileRepository 등에서 실제 몸무게를 가져와야 합니다.
+            // 지금은 기본값(70kg)을 사용합니다.
+            CalorieCalculator.calculateCalories(distance)
+        }
+        .distinctUntilChanged() // 동일한 칼로리 값이면 재방출 방지 (성능 최적화)
+        .stateIn(
+            scope = scope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0
         )
 
     // 결과 화면 표시 여부 및 데이터
@@ -174,7 +188,7 @@ class RunningViewModel(
             duration = duration,
             totalTime = finalTotalTime,
             pathSegments = RunningStateManager.pathSegments.value,
-            calories = (distance * 0.06).toInt(), // 단순 예시 계산
+            calories = currentCalories.value, // 현재 계산된 칼로리 사용
             startedAt = startTime ?: finishedAt // null이면 현재 시간 사용
             // movingPace와 elapsedPace는 RunResult 모델에서 자동 계산됨
         )

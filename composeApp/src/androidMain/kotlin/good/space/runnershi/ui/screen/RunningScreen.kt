@@ -7,13 +7,39 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,9 +51,13 @@ import androidx.compose.ui.unit.sp
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
-import good.space.runnershi.service.AndroidServiceController
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Polyline
+import com.google.maps.android.compose.rememberCameraPositionState
 import good.space.runnershi.state.PauseType
+import good.space.runnershi.ui.component.CalorieIndicator
 import good.space.runnershi.ui.component.PersonalBestIndicator
 import good.space.runnershi.util.MapsApiKeyChecker
 import good.space.runnershi.util.TimeFormatter
@@ -40,11 +70,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun RunningScreen(
     viewModel: RunningViewModel,
-    mainViewModel: MainViewModel,
-    serviceController: AndroidServiceController // 서비스 제어용 (다이얼로그에서 RESUME 호출 시 필요)
+    mainViewModel: MainViewModel
 ) {
     val context = LocalContext.current
-    
+
     // 1. 상태 구독 (StateFlow -> Compose State)
     val currentLocation by viewModel.currentLocation.collectAsState()
     val pathSegments by viewModel.pathSegments.collectAsState()
@@ -53,13 +82,16 @@ fun RunningScreen(
     val isRunning by viewModel.isRunning.collectAsState()
     val personalBest by viewModel.personalBest.collectAsState() // 최대 기록
     val pauseType by viewModel.pauseType.collectAsState()
-    
+
     // [New] 페이스 상태 구독
     val currentPace by viewModel.currentPace.collectAsState()
-    
+
+    // [New] 칼로리 상태 구독
+    val currentCalories by viewModel.currentCalories.collectAsState()
+
     // [New] 차량 경고 횟수 구독
     val vehicleWarningCount by viewModel.vehicleWarningCount.collectAsState()
-    
+
     // [New] 강제 종료 다이얼로그 표시 여부 상태
     var showForcedFinishDialog by remember { mutableStateOf(false) }
 
@@ -99,7 +131,7 @@ fun RunningScreen(
                 val distance = sqrt(latDiff.pow(2.0) + lngDiff.pow(2.0))
                 distance > 0.0001 // 약 10m 이상 이동했을 때만 애니메이션
             } ?: true // 첫 위치는 항상 애니메이션
-            
+
             if (shouldAnimate) {
                 lastAnimatedLocation = latLng
                 // 줌 레벨 17f 정도로 부드럽게 이동
@@ -112,7 +144,7 @@ fun RunningScreen(
             }
         }
     }
-    
+
     // [Logic Change] 2회 누적 시 -> 즉시 종료가 아니라 '다이얼로그'를 띄움
     LaunchedEffect(vehicleWarningCount) {
         if (vehicleWarningCount >= 2) {
@@ -122,11 +154,11 @@ fun RunningScreen(
 
     // API 키 확인
     val isApiKeySet = remember { MapsApiKeyChecker.isApiKeySet(context) }
-    
+
     // 로그아웃 처리
     val scope = rememberCoroutineScope()
     var showLogoutConfirmDialog by remember { mutableStateOf(false) }
-    
+
     // 설정값 구독
     val isAutoPauseEnabled by mainViewModel.isAutoPauseEnabled.collectAsState()
     var showSettingsDialog by remember { mutableStateOf(false) }
@@ -155,7 +187,7 @@ fun RunningScreen(
             // API 키 없음 UI
             NoApiKeyPlaceholder()
         }
-        
+
         // --- [New] 오토 퍼즈 상태 표시 배지 (상단 중앙) ---
         AnimatedVisibility(
             visible = pauseType == PauseType.AUTO_PAUSE_REST,
@@ -186,7 +218,7 @@ fun RunningScreen(
         ) {
             // 1. 설정 버튼 (톱니바퀴)
             SettingsButton(onClick = { showSettingsDialog = true })
-            
+
             // 2. 로그아웃 버튼
             LogoutButton(
                 onLogoutClick = {
@@ -198,7 +230,7 @@ fun RunningScreen(
                 }
             )
         }
-        
+
         if (showLogoutConfirmDialog) {
             LogoutConfirmDialog(
                 onConfirm = {
@@ -211,11 +243,27 @@ fun RunningScreen(
             )
         }
 
-        // --- [D] 최대 기록 인디케이터 (좌측 상단) ---
-        PersonalBestIndicator(
-            currentDistanceMeters = totalDistance,
-            pbDistanceMeters = personalBest?.distanceMeters
-        )
+        // --- [D] 좌측 상단 정보 그룹 (PB + 칼로리) ---
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp), // 전체 여백
+            horizontalAlignment = Alignment.Start // 왼쪽 정렬
+        ) {
+            // 1. 최고 기록 인디케이터 (기존)
+            PersonalBestIndicator(
+                currentDistanceMeters = totalDistance,
+                pbDistanceMeters = personalBest?.distanceMeters
+            )
+
+            // 사이 간격
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 2. [New] 칼로리 인디케이터 (PB 바로 아래)
+            CalorieIndicator(
+                calories = currentCalories
+            )
+        }
 
         // --- [B] 정보 및 컨트롤 패널 (HUD) ---
         RunControlPanel(
@@ -228,7 +276,7 @@ fun RunningScreen(
             onPause = { viewModel.pauseRun() },
             onFinish = { viewModel.finishRun() }
         )
-        
+
         // [New] 2회 누적 강제 종료 알림 다이얼로그 (최우선)
         if (showForcedFinishDialog) {
             ForcedFinishDialog(
@@ -238,20 +286,20 @@ fun RunningScreen(
                 }
             )
         }
-        
+
         // [Mod] 1회차 경고 다이얼로그 (조건: 카운트가 2 미만일 때만)
         if (pauseType == PauseType.AUTO_PAUSE_VEHICLE && vehicleWarningCount < 2) {
             VehicleWarningDialog(
-                onResume = { 
+                onResume = {
                     // 경고를 무시하고 다시 달리기
-                    viewModel.startRun() 
+                    viewModel.startRun()
                 },
-                onFinishRun = { 
-                    viewModel.finishRun() 
+                onFinishRun = {
+                    viewModel.finishRun()
                 }
             )
         }
-        
+
         // 설정 다이얼로그 표시
         if (showSettingsDialog) {
             SettingsDialog(
@@ -273,7 +321,7 @@ fun VehicleWarningDialog(onResume: () -> Unit, onFinishRun: () -> Unit) {
         onDismissRequest = { /* 강제 종료 방지 */ },
         icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFFFA000)) },
         title = { Text(text = "이동 속도가 너무 빠릅니다") },
-        text = { 
+        text = {
             Text(
                 text = "차량 탑승이 감지되어 기록을 일시정지했습니다.\n이동 데이터는 저장되지 않았습니다.\n\n계속 뛰시겠습니까?",
                 textAlign = TextAlign.Center
@@ -302,24 +350,24 @@ fun VehicleWarningDialog(onResume: () -> Unit, onFinishRun: () -> Unit) {
 @Composable
 fun ForcedFinishDialog(onConfirm: () -> Unit) {
     AlertDialog(
-        onDismissRequest = { 
+        onDismissRequest = {
             // 뒤로가기 키를 눌러도 종료 처리 (다이얼로그만 닫히고 맵에 남는 것 방지)
-            onConfirm() 
+            onConfirm()
         },
-        icon = { 
+        icon = {
             Icon(
-                imageVector = Icons.Default.Warning, 
-                contentDescription = null, 
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
                 tint = Color.Red
-            ) 
+            )
         },
-        title = { 
+        title = {
             Text(
                 text = "러닝이 종료되었습니다",
                 fontWeight = FontWeight.Bold
-            ) 
+            )
         },
-        text = { 
+        text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = "차량 탑승이 반복 감지되었습니다.",
@@ -366,16 +414,15 @@ fun RunControlPanel(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // [Mod] 타이머 & 페이스 & 거리 정보 (3열 배치로 변경)
+        // [UI 변경] 하단은 3열 배치 (Time, Pace, Distance) 유지
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly // 균등 배치
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             RunStatItem(
                 label = "TIME",
                 value = TimeFormatter.formatSecondsToTime(durationSeconds)
             )
-            // [New] 가운데에 PACE 추가
             RunStatItem(
                 label = "PACE",
                 value = currentPace
