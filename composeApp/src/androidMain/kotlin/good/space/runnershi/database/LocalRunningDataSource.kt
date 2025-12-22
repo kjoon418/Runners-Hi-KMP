@@ -4,6 +4,8 @@ import android.content.Context
 import good.space.runnershi.model.domain.location.LocationModel
 import good.space.runnershi.state.RunningStateManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
 import java.util.UUID
@@ -12,6 +14,20 @@ class LocalRunningDataSource(context: Context) {
     private val dao = AppDatabase.getDatabase(context).runningDao()
     private var currentRunId: String? = null
     private var currentSegmentIndex: Int = 0
+    
+    // ============================================
+    // 버퍼 기반 벌크 저장 최적화
+    // ============================================
+    // 메모리 버퍼: 위치 데이터를 임시로 저장
+    private val locationBuffer = mutableListOf<LocationEntity>()
+    // Thread-Safety를 위한 Mutex (여러 코루틴이 동시 접근해도 안전)
+    private val bufferMutex = Mutex()
+    // 한 번에 저장할 위치 데이터 개수 (조정 가능: 5~20 권장)
+    private val BATCH_SIZE = 10
+    
+    // 마지막 세션 통계 업데이트 시간 (세션 통계는 자주 업데이트하지 않도록)
+    private var lastStatsUpdateTime: Long = 0
+    private val STATS_UPDATE_INTERVAL_MS = 5000L // 5초마다 세션 통계 업데이트
 
     // 1. 러닝 시작 (DB 세션 생성)
     suspend fun startRun() = withContext(Dispatchers.IO) {
@@ -22,9 +38,15 @@ class LocalRunningDataSource(context: Context) {
             dao.deleteSessionById(existingSession.runId)
         }
         
+        // 버퍼 초기화 (새 러닝 시작 시)
+        bufferMutex.withLock {
+            locationBuffer.clear()
+        }
+        
         val runId = UUID.randomUUID().toString()
         currentRunId = runId
         currentSegmentIndex = 0
+        lastStatsUpdateTime = 0 // 통계 업데이트 시간 초기화
 
         val session = RunSessionEntity(
             runId = runId,
@@ -36,7 +58,8 @@ class LocalRunningDataSource(context: Context) {
         dao.insertSession(session)
     }
 
-    // 2. 실시간 데이터 저장 (Service에서 호출)
+    // 2. 버퍼 기반 데이터 저장 (Service에서 호출)
+    // 변경: saveLocation -> bufferLocation (버퍼에 추가, 자동 플러시)
     suspend fun saveLocation(location: LocationModel, totalDistance: Double, durationSeconds: Long) {
         val runId = currentRunId ?: return
 
@@ -45,22 +68,70 @@ class LocalRunningDataSource(context: Context) {
         if (session == null || session.runId != runId) {
             // 세션이 없거나 다른 세션이면 저장하지 않음
             currentRunId = null
+            // 버퍼도 비우기
+            bufferMutex.withLock {
+                locationBuffer.clear()
+            }
             return
         }
 
-        // 2-1. 세션 정보 업데이트 (요약 정보)
-        dao.updateSessionStats(runId, totalDistance, durationSeconds)
+        // 2-1. 세션 정보 업데이트 (요약 정보) - 자주 업데이트하지 않도록 최적화
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastStatsUpdateTime >= STATS_UPDATE_INTERVAL_MS) {
+            withContext(Dispatchers.IO) {
+                dao.updateSessionStats(runId, totalDistance, durationSeconds)
+            }
+            lastStatsUpdateTime = currentTime
+        }
 
-        // 2-2. 좌표 저장 (상세 정보)
+        // 2-2. 좌표를 버퍼에 추가 (메모리 연산, 매우 빠름)
         val entity = LocationEntity(
             runSessionId = runId,
             latitude = location.latitude,
             longitude = location.longitude,
-            // altitude = location.altitude, // [삭제] 일반 러닝 앱에서는 불필요
             timestamp = location.timestamp,
             segmentIndex = currentSegmentIndex
         )
-        dao.insertLocation(entity)
+        
+        // 버퍼에 추가하고, 가득 찼으면 자동으로 DB에 저장
+        bufferMutex.withLock {
+            locationBuffer.add(entity)
+            
+            // 버퍼가 가득 찼으면 DB에 일괄 저장 (Flush)
+            if (locationBuffer.size >= BATCH_SIZE) {
+                flushBufferLocked()
+            }
+        }
+    }
+    
+    /**
+     * 버퍼의 데이터를 DB에 일괄 저장 (내부 함수, Mutex 락 내부에서만 호출)
+     * 주의: 이 함수는 bufferMutex.withLock 내부에서만 호출해야 함
+     */
+    private suspend fun flushBufferLocked() {
+        if (locationBuffer.isEmpty()) return
+        
+        // 리스트의 복사본을 만들고 버퍼 비우기 (매우 중요!)
+        // 이렇게 하면 DB 저장 중에도 새로운 데이터를 버퍼에 추가할 수 있음
+        val locationsToSave = locationBuffer.toList()
+        locationBuffer.clear()
+        
+        // DB 트랜잭션으로 한 번에 저장 (벌크 삽입)
+        withContext(Dispatchers.IO) {
+            dao.insertLocations(locationsToSave)
+        }
+        
+        android.util.Log.d("LocalRunningDataSource", "💾 Flushed ${locationsToSave.size} locations to DB")
+    }
+    
+    /**
+     * 강제 저장: 버퍼에 남은 모든 데이터를 즉시 DB에 저장
+     * 러닝 종료 시 반드시 호출해야 함 (데이터 손실 방지)
+     */
+    suspend fun forceFlush() = withContext(Dispatchers.IO) {
+        bufferMutex.withLock {
+            flushBufferLocked()
+        }
     }
 
     // 3. 일시정지 후 재개 시 (세그먼트 인덱스 증가)
@@ -69,11 +140,19 @@ class LocalRunningDataSource(context: Context) {
     }
 
     // 4. 러닝 종료 (완료 마킹)
-    suspend fun finishRun() {
+    suspend fun finishRun() = withContext(Dispatchers.IO) {
+        // 중요: 종료 전에 버퍼에 남은 모든 데이터를 강제 저장
+        forceFlush()
+        
         val runId = currentRunId
         runId?.let { dao.finishSession(it) }
         currentRunId = null
         currentSegmentIndex = 0
+        
+        // 버퍼 초기화
+        bufferMutex.withLock {
+            locationBuffer.clear()
+        }
         // runId는 반환하지 않지만, discardCurrentRun()에서 최신 완료 세션을 삭제할 수 있도록 함
     }
 
@@ -132,6 +211,11 @@ class LocalRunningDataSource(context: Context) {
 
     // 5-3. [폐기] 복구 거부 시 데이터 삭제 (사용자가 "아니요" 했을 때)
     suspend fun discardRun() = withContext(Dispatchers.IO) {
+        // 버퍼 초기화 (삭제 전에 버퍼도 비우기)
+        bufferMutex.withLock {
+            locationBuffer.clear()
+        }
+        
         // 먼저 미완료 세션 확인
         val unfinishedSession = dao.getUnfinishedSession()
         if (unfinishedSession != null) {
@@ -151,6 +235,11 @@ class LocalRunningDataSource(context: Context) {
     
     // 6. [로그아웃용] 모든 러닝 데이터 삭제 (완료된 세션 포함)
     suspend fun discardAllRuns() = withContext(Dispatchers.IO) {
+        // 버퍼 초기화
+        bufferMutex.withLock {
+            locationBuffer.clear()
+        }
+        
         // 모든 세션 삭제 (CASCADE로 좌표도 자동 삭제됨)
         dao.deleteAllSessions()
         currentRunId = null

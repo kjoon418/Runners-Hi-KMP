@@ -29,6 +29,10 @@ interface RunningDao {
     @Insert
     suspend fun insertLocation(location: LocationEntity)
 
+    // 위치 점 벌크 삽입 (버퍼 기반 최적화)
+    @Insert
+    suspend fun insertLocations(locations: List<LocationEntity>)
+
     // [복구용] 아직 안 끝난(isFinished=false) 최신 세션 가져오기
     @Query("SELECT * FROM run_sessions WHERE isFinished = 0 ORDER BY startTime DESC LIMIT 1")
     suspend fun getUnfinishedSession(): RunSessionEntity?
@@ -59,10 +63,10 @@ abstract class AppDatabase : RoomDatabase() {
 
         // [마이그레이션] version 1 -> 2: altitude 컬럼 제거
         private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // location_points 테이블에서 altitude 컬럼 제거
                 // SQLite는 컬럼 삭제를 직접 지원하지 않으므로, 새 테이블을 만들고 데이터 복사
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE location_points_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         runSessionId TEXT NOT NULL,
@@ -74,14 +78,14 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 """.trimIndent())
                 
-                database.execSQL("""
+                db.execSQL("""
                     INSERT INTO location_points_new (id, runSessionId, latitude, longitude, timestamp, segmentIndex)
                     SELECT id, runSessionId, latitude, longitude, timestamp, segmentIndex
                     FROM location_points
                 """.trimIndent())
                 
-                database.execSQL("DROP TABLE location_points")
-                database.execSQL("ALTER TABLE location_points_new RENAME TO location_points")
+                db.execSQL("DROP TABLE location_points")
+                db.execSQL("ALTER TABLE location_points_new RENAME TO location_points")
             }
         }
 
