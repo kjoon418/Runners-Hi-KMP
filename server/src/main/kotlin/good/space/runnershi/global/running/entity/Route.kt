@@ -1,6 +1,8 @@
 package good.space.runnershi.global.running.entity
 
+import good.space.runnershi.model.domain.location.LocationModel
 import good.space.runnershi.model.dto.running.LocationPoint
+import good.space.runnershi.util.DistanceCalculator
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -39,5 +41,25 @@ class Route (
     fun addPoint(point: Point) {
         points.add(point)
         point.route = this
+    }
+    fun calculateDistance(): Double {
+        if (points.size < 2) return 0.0
+
+        val sortedPoints = points.sortedBy { it.sequenceOrder }
+
+        return sortedPoints.zipWithNext { p1, p2 ->
+            DistanceCalculator.calculateDistance(
+                LocationModel(
+                    latitude = p1.latitude,
+                    longitude = p1.longitude,
+                    timestamp = p1.timestamp.toEpochMilliseconds() // Instant -> Long 변환
+                ),
+                LocationModel(
+                    latitude = p2.latitude,
+                    longitude = p2.longitude,
+                    timestamp = p2.timestamp.toEpochMilliseconds() // Instant -> Long 변환
+                )
+            )
+        }.sum()
     }
 }

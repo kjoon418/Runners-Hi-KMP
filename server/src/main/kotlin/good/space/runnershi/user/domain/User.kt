@@ -1,12 +1,15 @@
 package good.space.runnershi.user.domain
 
 import good.space.runnershi.global.running.converter.KotlinLocalDateConverter
+import good.space.runnershi.global.running.entity.Running
 import good.space.runnershi.model.dto.running.RunCreateRequest
 import good.space.runnershi.user.UserType
+import jakarta.persistence.CascadeType
 import jakarta.persistence.CollectionTable
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.ElementCollection
+import jakarta.persistence.Embeddable
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
@@ -17,6 +20,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Inheritance
 import jakarta.persistence.InheritanceType
 import jakarta.persistence.JoinColumn
+import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toJavaInstant
@@ -48,6 +52,9 @@ abstract class User(
     var longestDistanceMeters: Double = 0.0
     var averagePace: Double = 0.0
 
+    @OneToMany(cascade = [(CascadeType.ALL)], orphanRemoval = true)
+    var runnings: MutableList<Running> = mutableListOf()
+
     @Transient
     val newAchievements : MutableSet<Achievement> = mutableSetOf()
 
@@ -59,24 +66,57 @@ abstract class User(
         name = "user_achievements",
         joinColumns = [JoinColumn(name = "user_id")]
     )
+
     @Enumerated(EnumType.STRING)
     @Column(name = "achievement")
     val achievements: MutableSet<Achievement> = mutableSetOf()
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(
+        name = "user_daily_quests",
+        joinColumns = [JoinColumn(name = "user_id")]
+    )
+    @Enumerated(EnumType.STRING)
+    var dailyQuests: MutableList<DailyQuestStatus> = mutableListOf()
+
+    @Convert(converter = KotlinLocalDateConverter::class)
+    var questGeneratedDate: LocalDate? = null
+
+    fun refreshDailyQuestsIfNeeded() {
+        val today = java.time.LocalDate.now().toKotlinLocalDate()
+
+        if (this.questGeneratedDate == today && this.dailyQuests.isNotEmpty()) {
+            return
+        }
+
+        this.dailyQuests.clear()
+
+        this.dailyQuests.add(DailyQuestStatus(Quest.getRandomQuestByLevel(1), false))
+        this.dailyQuests.add(DailyQuestStatus(Quest.getRandomQuestByLevel(2), false))
+        this.dailyQuests.add(DailyQuestStatus(Quest.getRandomQuestByLevel(3), false))
+
+        this.questGeneratedDate = today
+    }
+
+    fun addRunning(running: Running) {
+        this.runnings.add(running)
+        running.user = this
+    }
 
     fun increaseExp(amount: Long) {
         this.exp += amount
     }
 
-    fun updateRunningStats(request: RunCreateRequest) {
-        val durationSeconds = request.runningDuration.toDouble(DurationUnit.SECONDS)
-        val pace: Double = durationSeconds * (1000.0 / request.distanceMeters)
+    fun updateRunningStats(running: Running) {
+        val durationSeconds = running.duration.toDouble(DurationUnit.SECONDS)
+        val pace: Double = durationSeconds * (1000.0 / running.distanceMeters)
 
-        this.totalDistanceMeters += request.distanceMeters.toLong()
+        this.totalDistanceMeters += running.distanceMeters.toLong()
 
         this.totalRunningHours += durationSeconds / 3600.0
 
-        if (request.distanceMeters > this.longestDistanceMeters) {
-            this.longestDistanceMeters = request.distanceMeters
+        if (running.distanceMeters > this.longestDistanceMeters) {
+            this.longestDistanceMeters = running.distanceMeters
         }
 
         if (this.bestPace == 0.0 || pace < this.bestPace) {
@@ -88,7 +128,7 @@ abstract class User(
             this.averagePace = totalSeconds * (1000.0 / totalDistanceMeters)
         }
 
-        val currentRunDate = request.startedAt
+        val currentRunDate = running.startedAt
             .toJavaInstant()
             .atZone(ZoneId.systemDefault())
             .toLocalDate()
@@ -99,10 +139,23 @@ abstract class User(
             this.lastRunDate = currentRunDate
         }
 
-        updateAchievement()
+        updateAchievements()
+        checkDailyQuests(running)
     }
 
-    private fun updateAchievement() {
+    private fun checkDailyQuests(running: Running) {
+        for (status in this.dailyQuests) {
+            if (status.isCompleted) continue
+
+            if (status.quest.available(running)) {
+                status.isCompleted = true
+
+                this.increaseExp(status.quest.exp)
+            }
+        }
+    }
+
+    private fun updateAchievements() {
         for (achievement in Achievement.entries) {
             if (achievement.available(this) && !this.achievements.contains(achievement)) {
                 achievements.add(achievement)
@@ -110,4 +163,11 @@ abstract class User(
             }
         }
     }
+
+    @Embeddable
+    class DailyQuestStatus(
+        @Enumerated(EnumType.STRING)
+        val quest: Quest,
+        var isCompleted: Boolean = false
+    )
 }

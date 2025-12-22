@@ -15,6 +15,7 @@ import kotlinx.datetime.Instant
 import kotlin.time.Duration
 import good.space.runnershi.global.running.converter.KotlinDurationConverter
 import good.space.runnershi.global.running.converter.KotlinInstantConverter
+import good.space.runnershi.user.domain.Quest
 
 @Entity
 class Running (
@@ -25,9 +26,12 @@ class Running (
     @Convert(converter = KotlinDurationConverter::class)
     @Column(nullable = false)
     val totalTime: Duration, // 휴식시간을 포함한 총 시간
-    
+
     val distanceMeters: Double,
-    
+
+    @Column(nullable = false)
+    var longestNonStopDistance: Double = 0.0,
+
     @Convert(converter = KotlinInstantConverter::class)
     @Column(nullable = false)
     val startedAt: Instant, // 러닝 시작 시점
@@ -58,9 +62,18 @@ class Running (
         route.running = this
     }
 
+    fun updateLongestNonStopDistance() {
+        this.longestNonStopDistance = routes
+            .maxOfOrNull { route -> route.calculateDistance() }
+            ?: 0.0
+    }
+
+
     val averagePace: Double = if (distanceMeters > 0 && duration.inWholeSeconds > 0) {
         1000 / (distanceMeters / duration.inWholeSeconds.toDouble())
     } else {
         0.0
     }
+
+
 }
