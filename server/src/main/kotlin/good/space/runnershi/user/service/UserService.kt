@@ -26,6 +26,7 @@ class UserService (
 
             dailyQuests = user.dailyQuests.map { status ->
                 HomeQuestInfo(
+
                     questId = status.quest.questId,
                     title = status.quest.title,
                     level = status.quest.level,

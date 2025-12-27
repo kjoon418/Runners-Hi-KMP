@@ -2,8 +2,8 @@ package good.space.runnershi.user.domain
 
 import good.space.runnershi.global.running.converter.KotlinLocalDateConverter
 import good.space.runnershi.global.running.entity.Running
-import good.space.runnershi.model.dto.running.RunCreateRequest
-import good.space.runnershi.user.UserType
+import good.space.runnershi.model.domain.auth.Sex
+import good.space.runnershi.model.domain.auth.UserType
 import jakarta.persistence.CascadeType
 import jakarta.persistence.CollectionTable
 import jakarta.persistence.Column
@@ -32,6 +32,7 @@ import kotlin.time.DurationUnit
 @Entity
 @Table(name = "users")
 abstract class User(
+    @Column(unique = true, nullable = false)
     var name: String,
 
     @Column(unique = true, nullable = false)
@@ -39,6 +40,10 @@ abstract class User(
 
     @Enumerated(EnumType.STRING)
     var userType: UserType,
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    var sex: Sex
 ){
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

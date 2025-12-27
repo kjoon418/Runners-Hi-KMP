@@ -21,20 +21,16 @@ class AuthService(
 
     @Transactional
     fun signUp(request: SignUpRequest) {
-        // 1. 이메일 중복 검사
         if (userRepository.existsByEmail(request.email)) {
             throw IllegalArgumentException("이미 사용 중인 이메일입니다.")
         }
 
-        // 2. 비밀번호 암호화
-        // 사용자가 입력한 "1234" -> "$2a$10$..." (알아볼 수 없는 문자열)로 변환
         val encodedPassword = passwordEncoder.encode(request.password)
-
-        // 3. 유저 엔티티 생성 (LocalUser)
         val newUser = LocalUser(
             email = request.email,
             name = request.name,
-            password = encodedPassword
+            password = encodedPassword,
+            sex = request.sex
         )
 
         // 4. DB 저장

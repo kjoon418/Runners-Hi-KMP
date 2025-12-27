@@ -32,7 +32,7 @@ class AuthController(
             .body("회원가입 성공!")
     }
 
-    @Operation(summary = "로그인 (모바일/일반)", description = "이메일과 비밀번호로 로그인합니다. Access Token과 Refresh Token을 모두 **Response Body**로 반환합니다.")
+    @Operation(summary = "로그인 (모바일/일반)", description = "이메일과 비밀번호로 로그인합니다. Access Token과 Refresh Token을 모두 Response Body로 반환합니다.")
     @PostMapping("/login")
     fun login(@RequestBody request: LoginRequest): ResponseEntity<TokenResponse> {
         val token = authService.login(request)
@@ -56,7 +56,7 @@ class AuthController(
         return ResponseEntity.ok("로그아웃 되었습니다.")
     }
 
-    @Operation(summary = "로그인 (웹 전용)", description = "웹 환경 로그인입니다. Refresh Token은 **HttpOnly Cookie**에 설정되고, Body에는 Access Token만 반환됩니다 (보안 강화).")
+    @Operation(summary = "로그인 (웹 전용)", description = "웹 환경 로그인입니다. Refresh Token은 HttpOnly Cookie에 설정되고, Body에는 Access Token만 반환됩니다 (보안 강화).")
     @PostMapping("/login/web")
     fun loginWeb(@RequestBody request: LoginRequest): ResponseEntity<TokenResponse> {
         val originalToken = authService.login(request)
