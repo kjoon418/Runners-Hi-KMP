@@ -25,6 +25,10 @@ class AuthService(
             throw IllegalArgumentException("이미 사용 중인 이메일입니다.")
         }
 
+        if (userRepository.existsByName(request.name)) {
+            throw IllegalArgumentException("이미 사용 중인 이름입니다.")
+        }
+
         val encodedPassword = passwordEncoder.encode(request.password)
         val newUser = LocalUser(
             email = request.email,

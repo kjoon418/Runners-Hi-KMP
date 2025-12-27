@@ -1,4 +1,4 @@
-package good.space.runnershi.global.running.entity
+package good.space.runnershi.global.running.domain
 
 import good.space.runnershi.model.dto.running.LocationPoint
 import good.space.runnershi.user.domain.User
@@ -15,7 +15,6 @@ import kotlinx.datetime.Instant
 import kotlin.time.Duration
 import good.space.runnershi.global.running.converter.KotlinDurationConverter
 import good.space.runnershi.global.running.converter.KotlinInstantConverter
-import good.space.runnershi.user.domain.Quest
 
 @Entity
 class Running (

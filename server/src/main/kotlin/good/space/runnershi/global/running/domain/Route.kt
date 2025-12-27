@@ -1,4 +1,4 @@
-package good.space.runnershi.global.running.entity
+package good.space.runnershi.global.running.domain
 
 import good.space.runnershi.model.domain.location.LocationModel
 import good.space.runnershi.model.dto.running.LocationPoint

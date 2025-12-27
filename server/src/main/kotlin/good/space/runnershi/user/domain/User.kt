@@ -1,7 +1,7 @@
 package good.space.runnershi.user.domain
 
 import good.space.runnershi.global.running.converter.KotlinLocalDateConverter
-import good.space.runnershi.global.running.entity.Running
+import good.space.runnershi.global.running.domain.Running
 import good.space.runnershi.model.domain.auth.Sex
 import good.space.runnershi.model.domain.auth.UserType
 import jakarta.persistence.CascadeType

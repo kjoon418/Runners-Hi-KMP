@@ -1,4 +1,4 @@
-package good.space.runnershi.global.running.entity
+package good.space.runnershi.global.running.domain
 
 import good.space.runnershi.global.running.converter.KotlinInstantConverter
 import jakarta.persistence.Convert

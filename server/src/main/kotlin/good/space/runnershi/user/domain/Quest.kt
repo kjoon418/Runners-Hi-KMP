@@ -1,6 +1,6 @@
 package good.space.runnershi.user.domain
 
-import good.space.runnershi.global.running.entity.Running
+import good.space.runnershi.global.running.domain.Running
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 

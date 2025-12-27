@@ -1,6 +1,6 @@
 package good.space.runnershi.running
 
-import good.space.runnershi.global.running.entity.Running
+import good.space.runnershi.global.running.domain.Running
 import good.space.runnershi.global.running.repository.RunningRepository
 import good.space.runnershi.global.running.service.RunningService
 import good.space.runnershi.model.dto.running.LocationPoint
