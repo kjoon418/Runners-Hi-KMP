@@ -10,6 +10,7 @@ import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.ElementCollection
 import jakarta.persistence.Embeddable
+import jakarta.persistence.Embedded
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
@@ -86,6 +87,9 @@ abstract class User(
 
     @Convert(converter = KotlinLocalDateConverter::class)
     var questGeneratedDate: LocalDate? = null
+
+    @Embedded
+    var avatar: Avatar = Avatar()
 
     fun refreshDailyQuestsIfNeeded() {
         val today = java.time.LocalDate.now().toKotlinLocalDate()
