@@ -26,23 +26,17 @@ class RunningService (
 ){
     @Transactional(readOnly = true)
     fun getRunningHistory(userId: Long, startDate: LocalDate, endDate: LocalDate): List<RunningHistoryResponse> {
-
-        // 1. LocalDate -> Instant 변환 (해당 지역 시간대 기준)
         val timeZone = TimeZone.currentSystemDefault()
 
-        // 시작일 00:00:00
         val startInstant = startDate.atStartOfDayIn(timeZone)
 
-        // 종료일 23:59:59.999... (하루를 더하고 1나노초 뺌, 혹은 다음날 00:00 전까지)
         val endInstant = endDate.plus(1, DateTimeUnit.DAY)
             .atStartOfDayIn(timeZone)
 
-        // 2. DB 조회 (딱 필요한 것만 가져옴)
         val runnings = runningRepository.findAllByUserIdAndStartedAtBetween(
             userId, startInstant, endInstant
         )
 
-        // 3. DTO 변환
         return runnings.map { running ->
             RunningHistoryResponse(
                 runId = running.id!!,

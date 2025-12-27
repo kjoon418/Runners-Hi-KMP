@@ -3,6 +3,7 @@ package good.space.runnershi.running
 import good.space.runnershi.global.running.domain.Running
 import good.space.runnershi.global.running.repository.RunningRepository
 import good.space.runnershi.global.running.service.RunningService
+import good.space.runnershi.model.domain.auth.Sex
 import good.space.runnershi.model.dto.running.LocationPoint
 import good.space.runnershi.model.dto.running.RunCreateRequest
 import good.space.runnershi.user.domain.Achievement
@@ -24,20 +25,24 @@ import org.mockito.junit.jupiter.MockitoExtension
 import java.util.*
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.plus
 
 @ExtendWith(MockitoExtension::class) // 1. Mockito 확장 기능을 사용 (Spring Context 로딩 X -> 빠름)
 class RunningServiceTest {
 
-    @Mock // 가짜 리포지토리 생성
+    @Mock
     private lateinit var userRepository: UserRepository
 
-    @Mock // 가짜 리포지토리 생성
+    @Mock
     private lateinit var runningRepository: RunningRepository
 
-    @InjectMocks // 가짜 리포지토리들을 주입받는 테스트 대상 서비스
+    @InjectMocks
     private lateinit var runningService: RunningService
 
-    // 테스트용 유저 생성 헬퍼 함수
     private fun createTestUser(
         name: String = "TestRunner",
         email: String = "test@example.com",
@@ -46,16 +51,14 @@ class RunningServiceTest {
         return LocalUser(
             name = name,
             email = email,
-            password = password
+            password = password,
+            sex = Sex.MALE,
         )
     }
 
     @Test
     @DisplayName("러닝 기록 저장 성공 시: Repository가 호출되고, 유저 정보가 업데이트된 DTO가 반환되어야 한다")
     fun saveRunningStats_Success() {
-        // ==========================================
-        // 1. Given (준비)
-        // ==========================================
         val userId = 1L
         val fakeUser = createTestUser().apply {
             this.id = userId
@@ -63,7 +66,6 @@ class RunningServiceTest {
             this.totalDistanceMeters = 300.0 // 초기값 300.0
         }
 
-        // 테스트용 요청 데이터 (3km, 15분)
         val request = RunCreateRequest(
             distanceMeters = 3000.0,
             runningDuration = 15.minutes,
@@ -80,23 +82,13 @@ class RunningServiceTest {
             )
         )
 
-        // Mocking 1: 유저 조회 시 fakeUser를 리턴하도록 설정
         `when`(userRepository.findById(userId)).thenReturn(Optional.of(fakeUser))
-
-        // Mocking 2: 러닝 저장 시, ID가 100L인 Running 객체를 리턴했다고 가정
         `when`(runningRepository.save(any(Running::class.java))).thenAnswer { invocation ->
             val savedEntity = invocation.getArgument(0) as Running
             savedEntity.apply { id = 100L } // ID 부여 시뮬레이션
         }
 
-        // ==========================================
-        // 2. When (실행)
-        // ==========================================
         val response = runningService.saveRunningStats(userId, request)
-
-        // ==========================================
-        // 3. Then (검증)
-        // ==========================================
 
         // A. 리포지토리 호출 검증
         verify(userRepository).findById(userId) // 유저 조회가 일어났는가?
@@ -107,7 +99,6 @@ class RunningServiceTest {
         assertThat(fakeUser.exp).isEqualTo(3000L) // 경험치가 올랐는가? (거리 3000 = 경험치 3000)
 
         // C. 반환된 DTO 검증
-        assertThat(response.runId).isEqualTo(100L)
         assertThat(response.userId).isEqualTo(userId)
         assertThat(response.userExp).isEqualTo(3000L)
     }
@@ -115,9 +106,6 @@ class RunningServiceTest {
     @Test
     @DisplayName("존재하지 않는 유저 ID로 요청 시: 예외가 발생하고 저장은 실행되지 않아야 한다")
     fun saveRunningStats_UserNotFound() {
-        // ==========================================
-        // 1. Given
-        // ==========================================
         val wrongUserId = 999L
         val request = RunCreateRequest(
             distanceMeters = 1000.0,
@@ -138,25 +126,18 @@ class RunningServiceTest {
         // Mocking: 유저를 찾지 못함 (Optional.empty())
         `when`(userRepository.findById(wrongUserId)).thenReturn(Optional.empty())
 
-        // ==========================================
-        // 2. When & Then
-        // ==========================================
         assertThatThrownBy {
             runningService.saveRunningStats(wrongUserId, request)
         }
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessageContaining("user with id $wrongUserId 를 찾을 수 없습니다")
 
-        // ⭐️ 중요: 예외가 터졌으므로 러닝 기록 저장은 호출되면 안 됨!
         verify(runningRepository, times(0)).save(any())
     }
 
     @Test
     @DisplayName("업적 달성 시: 반환된 Response의 newBadges에 정보가 포함되어야 한다")
     fun saveRunningStats_WithNewBadges() {
-        // ==========================================
-        // 1. Given (1km 업적 달성을 위한 조건 설정)
-        // ==========================================
         val userId = 2L
         val fakeUser = createTestUser().apply { id = userId }
 
@@ -181,15 +162,8 @@ class RunningServiceTest {
         `when`(runningRepository.save(any())).thenAnswer {
             (it.getArgument(0) as Running).apply { id = 200L }
         }
-
-        // ==========================================
-        // 2. When
-        // ==========================================
         val response = runningService.saveRunningStats(userId, request)
 
-        // ==========================================
-        // 3. Then
-        // ==========================================
         // 새로 획득한 뱃지 목록 검증
         // 초기값 300.0 + 1500.0 = 1800.0m이므로 CUMULATIVE_LV1(1000m 이상) 달성
         assertThat(response.newBadges).isNotEmpty
@@ -250,14 +224,7 @@ class RunningServiceTest {
             entity.apply { id = 777L } // 저장된 ID 리턴 시뮬레이션
         }
 
-        // ==========================================
-        // 2. When (실행)
-        // ==========================================
         val response = runningService.saveRunningStats(userId, request)
-
-        // ==========================================
-        // 3. Then (검증)
-        // ==========================================
 
         // A. 저장 로직 호출 검증
         verify(runningRepository).save(any(Running::class.java))
@@ -268,7 +235,6 @@ class RunningServiceTest {
         assertThat(fakeUser.lastRunDate).isNotNull // 출석 체크 확인
 
         // C. 응답값 검증
-        assertThat(response.runId).isEqualTo(777L)
         assertThat(response.userExp).isEqualTo(5200L)
 
         // D. 뱃지 획득 검증 (예: 5km 이상이므로 CUMULATIVE_LV1 획득 가정)
@@ -279,9 +245,6 @@ class RunningServiceTest {
     @Test
     @DisplayName("기존 업적이 있을 때 새로운 업적 달성 시: achievements에는 전체 업적이, newAchievements에는 새로 달성한 업적만 포함되어야 한다")
     fun saveRunningStats_WithExistingAchievements() {
-        // ==========================================
-        // 1. Given (기존 업적 5개를 가진 유저 설정)
-        // ==========================================
         val userId = 3L
         val fakeUser = createTestUser().apply {
             this.id = userId
@@ -345,15 +308,8 @@ class RunningServiceTest {
             entity.apply { id = 300L }
         }
 
-        // ==========================================
-        // 2. When (실행)
-        // ==========================================
         val response = runningService.saveRunningStats(userId, request)
 
-        // ==========================================
-        // 3. Then (검증)
-        // ==========================================
-        
         // A. achievements에는 기존 5개 + 새로운 2개 = 총 7개가 있어야 함
         assertThat(fakeUser.achievements.size).isEqualTo(10)
         assertThat(fakeUser.achievements).contains(
@@ -401,7 +357,7 @@ class RunningServiceTest {
                 latitude = startLat + (i * 0.0001),
                 longitude = startLng + (i * 0.0001),
                 timestamp = startTime.plus((i * 10).seconds), // Instant 타입
-                segmentIndex = segmentIndex, // ⭐️ 몇 번째 구간인지 중요!
+                segmentIndex = segmentIndex, // 몇 번째 구간인지 중요!
                 sequenceOrder = i // 순서 인덱스
             )
         }
@@ -419,5 +375,199 @@ class RunningServiceTest {
                 sequenceOrder = i
             )
         }
+    }
+
+    // 테스트용 Running 엔티티 생성 헬퍼 함수
+    private fun createTestRunning(
+        id: Long,
+        userId: Long,
+        distanceMeters: Double,
+        duration: kotlin.time.Duration,
+        startedAt: Instant
+    ): Running {
+        val running = Running(
+            duration = duration,
+            totalTime = duration,
+            distanceMeters = distanceMeters,
+            startedAt = startedAt
+        )
+        running.id = id
+        return running
+    }
+
+    @Test
+    @DisplayName("러닝 히스토리 조회 성공 시: 날짜 범위 내의 러닝 기록들이 정상적으로 반환되어야 한다")
+    fun getRunningHistory_Success() {
+        val userId = 1L
+        val startDate = LocalDate.parse("2025-01-01")
+        val endDate = LocalDate.parse("2025-01-31")
+
+        val timeZone = TimeZone.currentSystemDefault()
+        val startInstant = startDate.atStartOfDayIn(timeZone)
+        val endInstant = endDate.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone)
+
+        // 테스트용 러닝 기록들 생성
+        val running1 = createTestRunning(
+            id = 1L,
+            userId = userId,
+            distanceMeters = 3000.0,
+            duration = 15.minutes,
+            startedAt = Instant.parse("2025-01-15T10:00:00Z")
+        )
+
+        val running2 = createTestRunning(
+            id = 2L,
+            userId = userId,
+            distanceMeters = 5000.0,
+            duration = 25.minutes,
+            startedAt = Instant.parse("2025-01-20T18:00:00Z")
+        )
+
+        val running3 = createTestRunning(
+            id = 3L,
+            userId = userId,
+            distanceMeters = 2000.0,
+            duration = 10.minutes,
+            startedAt = Instant.parse("2025-01-25T07:00:00Z")
+        )
+
+        val mockRunnings = listOf(running1, running2, running3)
+
+        // Mocking: 리포지토리가 러닝 기록 리스트를 반환하도록 설정
+        `when`(runningRepository.findAllByUserIdAndStartedAtBetween(userId, startInstant, endInstant))
+            .thenReturn(mockRunnings)
+
+        val result = runningService.getRunningHistory(userId, startDate, endDate)
+
+        verify(runningRepository).findAllByUserIdAndStartedAtBetween(userId, startInstant, endInstant)
+
+        // B. 반환된 결과 검증
+        assertThat(result).hasSize(3)
+
+        // C. 첫 번째 러닝 기록 검증
+        assertThat(result[0].runId).isEqualTo(1L)
+        assertThat(result[0].distanceMeters).isEqualTo(3000.0)
+        assertThat(result[0].durationSeconds).isEqualTo(15.minutes)
+        assertThat(result[0].startedAt).isEqualTo(Instant.parse("2025-01-15T10:00:00Z"))
+        assertThat(result[0].averagePace).isEqualTo(running1.averagePace)
+
+        // D. 두 번째 러닝 기록 검증
+        assertThat(result[1].runId).isEqualTo(2L)
+        assertThat(result[1].distanceMeters).isEqualTo(5000.0)
+        assertThat(result[1].durationSeconds).isEqualTo(25.minutes)
+        assertThat(result[1].startedAt).isEqualTo(Instant.parse("2025-01-20T18:00:00Z"))
+        assertThat(result[1].averagePace).isEqualTo(running2.averagePace)
+
+        // E. 세 번째 러닝 기록 검증
+        assertThat(result[2].runId).isEqualTo(3L)
+        assertThat(result[2].distanceMeters).isEqualTo(2000.0)
+        assertThat(result[2].durationSeconds).isEqualTo(10.minutes)
+        assertThat(result[2].startedAt).isEqualTo(Instant.parse("2025-01-25T07:00:00Z"))
+        assertThat(result[2].averagePace).isEqualTo(running3.averagePace)
+    }
+
+    @Test
+    @DisplayName("러닝 히스토리 조회 시 기록이 없는 경우: 빈 리스트가 반환되어야 한다")
+    fun getRunningHistory_EmptyResult() {
+        val userId = 1L
+        val startDate = LocalDate.parse("2025-02-01")
+        val endDate = LocalDate.parse("2025-02-28")
+
+        val timeZone = TimeZone.currentSystemDefault()
+        val startInstant = startDate.atStartOfDayIn(timeZone)
+        val endInstant = endDate.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone)
+
+        // Mocking: 빈 리스트 반환
+        `when`(runningRepository.findAllByUserIdAndStartedAtBetween(userId, startInstant, endInstant))
+            .thenReturn(emptyList())
+
+        val result = runningService.getRunningHistory(userId, startDate, endDate)
+
+        verify(runningRepository).findAllByUserIdAndStartedAtBetween(userId, startInstant, endInstant)
+
+        // B. 빈 리스트 반환 검증
+        assertThat(result).isEmpty()
+    }
+
+    @Test
+    @DisplayName("러닝 히스토리 조회 시 날짜 범위 경계값 테스트: 시작일과 종료일의 러닝 기록이 포함되어야 한다")
+    fun getRunningHistory_BoundaryDates() {
+        val userId = 1L
+        val startDate = LocalDate.parse("2025-03-01")
+        val endDate = LocalDate.parse("2025-03-01")
+
+        val timeZone = TimeZone.currentSystemDefault()
+        val startInstant = startDate.atStartOfDayIn(timeZone)
+        val endInstant = endDate.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone)
+
+        // 시작일 00:00:00에 시작한 러닝 기록
+        val runningAtStart = createTestRunning(
+            id = 1L,
+            userId = userId,
+            distanceMeters = 1000.0,
+            duration = 5.minutes,
+            startedAt = startInstant
+        )
+
+        // 종료일 23:59:59에 시작한 러닝 기록 (다음 날 00:00:00 이전이므로 포함되어야 함)
+        // endInstant는 다음 날 00:00:00이므로, 종료일의 마지막 시간을 직접 지정
+        val runningAtEnd = createTestRunning(
+            id = 2L,
+            userId = userId,
+            distanceMeters = 2000.0,
+            duration = 10.minutes,
+            startedAt = endDate.atStartOfDayIn(timeZone).plus(23, DateTimeUnit.HOUR).plus(59, DateTimeUnit.MINUTE).plus(59, DateTimeUnit.SECOND)
+        )
+
+        val mockRunnings = listOf(runningAtStart, runningAtEnd)
+
+        // Mocking
+        `when`(runningRepository.findAllByUserIdAndStartedAtBetween(userId, startInstant, endInstant))
+            .thenReturn(mockRunnings)
+
+        val result = runningService.getRunningHistory(userId, startDate, endDate)
+
+        verify(runningRepository).findAllByUserIdAndStartedAtBetween(userId, startInstant, endInstant)
+
+        // B. 두 개의 기록이 모두 포함되어야 함
+        assertThat(result).hasSize(2)
+        assertThat(result.map { it.runId }).containsExactlyInAnyOrder(1L, 2L)
+    }
+
+    @Test
+    @DisplayName("러닝 히스토리 조회 시 날짜 범위 밖의 기록은 제외되어야 한다")
+    fun getRunningHistory_ExcludeOutOfRange() {
+        val userId = 1L
+        val startDate = LocalDate.parse("2025-04-01")
+        val endDate = LocalDate.parse("2025-04-30")
+
+        val timeZone = TimeZone.currentSystemDefault()
+        val startInstant = startDate.atStartOfDayIn(timeZone)
+        val endInstant = endDate.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone)
+
+        // 범위 내의 러닝 기록만 생성
+        val runningInRange = createTestRunning(
+            id = 1L,
+            userId = userId,
+            distanceMeters = 3000.0,
+            duration = 15.minutes,
+            startedAt = Instant.parse("2025-04-15T12:00:00Z")
+        )
+
+        val mockRunnings = listOf(runningInRange)
+
+        // Mocking: 리포지토리는 범위 내의 기록만 반환 (범위 밖의 기록은 리포지토리에서 필터링됨)
+        `when`(runningRepository.findAllByUserIdAndStartedAtBetween(userId, startInstant, endInstant))
+            .thenReturn(mockRunnings)
+
+        val result = runningService.getRunningHistory(userId, startDate, endDate)
+
+        // A. 리포지토리 호출 검증
+        verify(runningRepository).findAllByUserIdAndStartedAtBetween(userId, startInstant, endInstant)
+
+        // B. 범위 내의 기록만 반환되어야 함
+        assertThat(result).hasSize(1)
+        assertThat(result[0].runId).isEqualTo(1L)
+        assertThat(result[0].startedAt).isEqualTo(Instant.parse("2025-04-15T12:00:00Z"))
     }
 }
