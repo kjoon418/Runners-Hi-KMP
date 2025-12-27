@@ -7,12 +7,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -31,14 +37,19 @@ fun RunnersHiTextField(
     enabled: Boolean = true,
     singleLine: Boolean = true,
     visualTransformation: VisualTransformation = VisualTransformation.None,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    onValidate: (() -> Unit)? = null
 ) {
+    var isFocused by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        Label(title = title)
-
-        Spacer(modifier = Modifier.height(8.dp))
+        if (title.isNotEmpty()) {
+            Label(title = title)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         InputField(
             value = value,
@@ -48,10 +59,23 @@ fun RunnersHiTextField(
             singleLine = singleLine,
             isError = errorMessage != null,
             visualTransformation = visualTransformation,
-            keyboardOptions = keyboardOptions
+            keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions,
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focusState ->
+                    // 이전에 포커스가 있었고 지금 없어졌다면, 검증 실행
+                    if (isFocused && !focusState.isFocused) {
+                        onValidate?.invoke()
+                    }
+                    isFocused = focusState.isFocused
+                }
         )
 
-        ErrorMessage(errorMessage)
+        if (errorMessage != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            ErrorMessage(errorMessage)
+        }
     }
 }
 
@@ -76,12 +100,14 @@ private fun InputField(
     singleLine: Boolean,
     isError: Boolean,
     visualTransformation: VisualTransformation,
-    keyboardOptions: KeyboardOptions
+    keyboardOptions: KeyboardOptions,
+    keyboardActions: KeyboardActions,
+    modifier: Modifier
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         enabled = enabled,
         singleLine = singleLine,
         textStyle = RunnersHiTheme.typography.bodyLarge,
@@ -97,6 +123,7 @@ private fun InputField(
         isError = isError,
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
         shape = RoundedCornerShape(12.dp),
 
         colors = OutlinedTextFieldDefaults.colors(
@@ -112,16 +139,13 @@ private fun InputField(
 
 @Composable
 private fun ErrorMessage(
-    errorMessage: String?
+    errorMessage: String
 ) {
-    if (errorMessage != null) {
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = errorMessage,
-            style = RunnersHiTheme.typography.labelSmall,
-            color = RunnersHiTheme.colorScheme.error
-        )
-    }
+    Text(
+        text = errorMessage,
+        style = RunnersHiTheme.typography.labelSmall,
+        color = RunnersHiTheme.colorScheme.error
+    )
 }
 
 @Preview
