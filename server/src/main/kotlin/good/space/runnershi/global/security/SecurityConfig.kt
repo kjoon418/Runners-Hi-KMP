@@ -15,7 +15,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
 @EnableWebSecurity
-class sSecurityConfig (
+class SecurityConfig (
     // 👇 생성자로 주입받습니다
     private val jwtAuthenticationFilter: JwtAuthenticationFilter
 ) {
@@ -45,9 +45,7 @@ class sSecurityConfig (
 
         // Security permitAll paths
         private val PERMIT_ALL_PATHS = arrayOf(
-            "/api/v1/auth/signup",
-            "/api/v1/auth/login",
-            "/api/v1/auth/refresh",
+            "/api/v1/auth/**",
             "/api/v1/running/**",
             "/swagger-ui/**",
             "/v3/api-docs/**"

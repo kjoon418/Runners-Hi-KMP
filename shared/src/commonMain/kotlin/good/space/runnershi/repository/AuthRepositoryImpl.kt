@@ -1,8 +1,8 @@
 package good.space.runnershi.repository
 
 import good.space.runnershi.model.dto.auth.LoginRequest
-import good.space.runnershi.model.dto.auth.LoginResponse
 import good.space.runnershi.model.dto.auth.SignUpRequest
+import good.space.runnershi.model.dto.auth.TokenResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -20,7 +20,7 @@ class AuthRepositoryImpl(
     private val authenticatedHttpClient: HttpClient? = null // 인증 필요한 요청용 (logout) - 선택적
 ) : AuthRepository {
 
-    override suspend fun login(request: LoginRequest): Result<LoginResponse> {
+    override suspend fun login(request: LoginRequest): Result<TokenResponse> {
         return try {
             val response = httpClient.post("$baseUrl/api/v1/auth/login") {
                 contentType(ContentType.Application.Json)
@@ -28,7 +28,7 @@ class AuthRepositoryImpl(
             }
             
             if (response.status == HttpStatusCode.OK) {
-                val tokenResponse = response.body<LoginResponse>()
+                val tokenResponse = response.body<TokenResponse>()
                 Result.success(tokenResponse)
             } else {
                 Result.failure(Exception("로그인 실패: ${response.status}"))
@@ -38,7 +38,7 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun signUp(request: SignUpRequest): Result<LoginResponse> {
+    override suspend fun signUp(request: SignUpRequest): Result<TokenResponse> {
         return try {
             // 1. 회원가입 요청
             val signUpResponse = httpClient.post("$baseUrl/api/v1/auth/signup") {
@@ -62,7 +62,7 @@ class AuthRepositoryImpl(
             }
             
             if (loginResponse.status == HttpStatusCode.OK) {
-                val tokenResponse = loginResponse.body<LoginResponse>()
+                val tokenResponse = loginResponse.body<TokenResponse>()
                 Result.success(tokenResponse)
             } else {
                 Result.failure(Exception("회원가입은 성공했으나 자동 로그인 실패: ${loginResponse.status}"))
@@ -91,13 +91,12 @@ class AuthRepositoryImpl(
 
     override suspend fun checkEmailAvailability(email: String): Result<Boolean> {
         return try {
-            // TODO: 실제 API 엔드포인트로 수정
             val response = httpClient.get("$baseUrl/api/v1/auth/check-email") {
                 parameter("email", email)
             }
 
             when (response.status) {
-                HttpStatusCode.OK, HttpStatusCode.NoContent -> {
+                HttpStatusCode.NoContent -> {
                     Result.success(true)
                 }
                 HttpStatusCode.Conflict -> {
@@ -114,13 +113,12 @@ class AuthRepositoryImpl(
 
     override suspend fun checkNameAvailability(name: String): Result<Boolean> {
         return try {
-            // TODO: 실제 API 엔드포인트로 수정
             val response = httpClient.get("$baseUrl/api/v1/auth/check-name") {
                 parameter("name", name)
             }
 
             when (response.status) {
-                HttpStatusCode.OK, HttpStatusCode.NoContent -> {
+                HttpStatusCode.NoContent -> {
                     Result.success(true)
                 }
                 HttpStatusCode.Conflict -> {

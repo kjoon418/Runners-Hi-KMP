@@ -7,8 +7,8 @@ import good.space.runnershi.model.domain.auth.AuthValidationResult
 import good.space.runnershi.model.domain.auth.Sex
 import good.space.runnershi.model.domain.auth.ValidateEmailUseCase
 import good.space.runnershi.model.domain.auth.ValidatePasswordUseCase
-import good.space.runnershi.model.dto.auth.LoginResponse
 import good.space.runnershi.model.dto.auth.SignUpRequest
+import good.space.runnershi.model.dto.auth.TokenResponse
 import good.space.runnershi.repository.AuthRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.onSuccess
 
 enum class SignUpStep {
     EmailPassword,
@@ -281,7 +282,7 @@ class SignUpViewModel(
         _uiState.update { it.copy(signUpError = null) }
     }
 
-    private suspend fun signUp(): Result<LoginResponse> {
+    private suspend fun signUp(): Result<TokenResponse> {
         val currentState = _uiState.value
 
         return authRepository.signUp(currentState.toSignUpRequest())
