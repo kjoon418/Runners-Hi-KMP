@@ -4,6 +4,12 @@ import good.space.runnershi.global.running.converter.KotlinLocalDateConverter
 import good.space.runnershi.global.running.domain.Running
 import good.space.runnershi.model.domain.auth.Sex
 import good.space.runnershi.model.domain.auth.UserType
+import good.space.runnershi.model.dto.user.NewUnlockedAvatarInfo
+import good.space.runnershi.model.type.BottomItem
+import good.space.runnershi.model.type.HeadItem
+import good.space.runnershi.model.type.ShoeItem
+import good.space.runnershi.model.type.TopItem
+import good.space.runnershi.state.LevelPolicy
 import jakarta.persistence.CascadeType
 import jakarta.persistence.CollectionTable
 import jakarta.persistence.Column
@@ -52,7 +58,7 @@ abstract class User(
 
     var exp: Long = 0;
     var totalRunningDays: Long = 0
-    var totalDistanceMeters: Double = 300.0
+    var totalDistanceMeters: Double = 0.0
     var totalRunningHours: Double = 0.0
     var bestPace: Double = 0.0
     var longestDistanceMeters: Double = 0.0
@@ -91,7 +97,13 @@ abstract class User(
     @Embedded
     var avatar: Avatar = Avatar()
 
-    val level: Int = 1
+    @Embedded
+    var inventory: UserInventory = UserInventory()
+
+    @Transient
+    val newUnlockedAvatars: MutableList<NewUnlockedAvatarInfo> = mutableListOf()
+
+    var level: Int = 1
 
     fun refreshDailyQuestsIfNeeded() {
         val today = java.time.LocalDate.now().toKotlinLocalDate()
@@ -116,6 +128,16 @@ abstract class User(
 
     fun increaseExp(amount: Long) {
         this.exp += amount
+        checkLevelUp()
+    }
+
+    private fun checkLevelUp() {
+        val calculatedLevel = LevelPolicy.calculateLevel(this.exp)
+
+        if (calculatedLevel > this.level) {
+            this.level = calculatedLevel
+            updateAvatars()
+        }
     }
 
     fun updateRunningStats(running: Running) {
@@ -154,6 +176,43 @@ abstract class User(
         checkDailyQuests(running)
     }
 
+    private fun updateAvatars(){
+        HeadItem.entries.forEach { item ->
+            if (item.requiredLevel ==  this.level && !inventory.hasHead(item)) {
+                newUnlockedAvatars.add(NewUnlockedAvatarInfo("HEAD", item.name))
+                inventory.addHead(item)
+            }
+        }
+
+        TopItem.entries.forEach { item ->
+            if (item.requiredLevel ==  this.level && !inventory.hasTop(item)) {
+                newUnlockedAvatars.add(NewUnlockedAvatarInfo("TOP", item.name))
+                inventory.addTop(item)
+            }
+        }
+
+        BottomItem.entries.forEach { item ->
+            if (item.requiredLevel ==  this.level && !inventory.hasBottom(item)) {
+                newUnlockedAvatars.add(NewUnlockedAvatarInfo("BOTTOM", item.name))
+                inventory.addBottom(item)
+            }
+        }
+
+        ShoeItem.entries.forEach { item ->
+            if (item.requiredLevel ==  this.level && !inventory.hasShoe(item)) {
+                newUnlockedAvatars.add(NewUnlockedAvatarInfo("SHOES", item.name))
+                inventory.addShoe(item)
+            }
+        }
+    }
+
+    fun changeAvatar(newHead: HeadItem, newTop: TopItem, newBottom: BottomItem, newShoes: ShoeItem) {
+        this.avatar.head = newHead
+        this.avatar.top = newTop
+        this.avatar.bottom = newBottom
+        this.avatar.shoes = newShoes
+    }
+
     private fun checkDailyQuests(running: Running) {
         for (status in this.dailyQuests) {
             if (status.isCompleted) continue
@@ -171,6 +230,7 @@ abstract class User(
             if (achievement.available(this) && !this.achievements.contains(achievement)) {
                 achievements.add(achievement)
                 newAchievements.add(achievement)
+                this.increaseExp(achievement.exp)
             }
         }
     }

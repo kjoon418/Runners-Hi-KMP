@@ -1,7 +1,11 @@
 package good.space.runnershi.user.service
 
-import good.space.runnershi.model.dto.running.HomeQuestInfo
-import good.space.runnershi.model.dto.running.UserHomeResponse
+import good.space.runnershi.global.exception.UserNotFoundException
+import good.space.runnershi.model.dto.user.AvatarInfo
+import good.space.runnershi.model.dto.user.AvatarResponse
+import good.space.runnershi.model.dto.user.AvatarUpdateRequest
+import good.space.runnershi.model.dto.user.HomeQuestInfo
+import good.space.runnershi.model.dto.user.UserHomeResponse
 import good.space.runnershi.user.repository.UserRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
@@ -26,7 +30,6 @@ class UserService (
 
             dailyQuests = user.dailyQuests.map { status ->
                 HomeQuestInfo(
-
                     questId = status.quest.questId,
                     title = status.quest.title,
                     level = status.quest.level,
@@ -34,7 +37,30 @@ class UserService (
                     isCompleted = status.isCompleted
                 )
             },
-            achievements = user.achievements.map { it.name }
+            achievements = user.achievements.map { it.name },
+            sex = user.sex,
+            level = user.level,
+            avatars = AvatarInfo(
+                head = user.avatar.head,
+                top = user.avatar.top,
+                bottom = user.avatar.bottom,
+                shoes = user.avatar.shoes
+            )
+            )
+    }
+
+    @Transactional
+    fun changeAvatar(userId: Long, request: AvatarUpdateRequest): AvatarResponse {
+        val user = userRepository.findById(userId)
+            .orElseThrow { UserNotFoundException() }
+
+        user.changeAvatar(
+            newHead = request.head,
+            newTop = request.top,
+            newBottom = request.bottom,
+            newShoes = request.shoes
         )
+
+        return user.avatar.toResponse()
     }
 }

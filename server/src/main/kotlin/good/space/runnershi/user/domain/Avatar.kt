@@ -1,5 +1,6 @@
 package good.space.runnershi.user.domain
 
+import good.space.runnershi.model.dto.user.AvatarResponse
 import good.space.runnershi.model.type.* // shared의 Enum 임포트
 import jakarta.persistence.Embeddable
 import jakarta.persistence.EnumType
@@ -19,3 +20,13 @@ class Avatar(
     @Enumerated(EnumType.STRING)
     var shoes: ShoeItem = ShoeItem.NONE
 )
+{
+    fun toResponse(): AvatarResponse {
+        return AvatarResponse(
+            head = this.head,
+            top = this.top,
+            bottom = this.bottom,
+            shoes = this.shoes
+        )
+    }
+}

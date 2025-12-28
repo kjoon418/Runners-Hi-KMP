@@ -1,4 +1,9 @@
 package good.space.runnershi.model.dto.user
 
-class NewUnlockedAvatarInfo {
-}
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class NewUnlockedAvatarInfo(
+    val category: String,
+    val itemName: String
+)
