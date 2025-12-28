@@ -7,15 +7,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import good.space.runnershi.ui.components.ButtonStyle
 import good.space.runnershi.ui.components.RunnersHiButton
@@ -39,10 +43,14 @@ fun Step1Content(
 ) {
     val focusManager = LocalFocusManager.current
 
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
+            .imePadding()
+            .verticalScroll(scrollState)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
@@ -60,7 +68,8 @@ fun Step1Content(
         PasswordCheckInput(uiState, onPasswordCheckChange)
         Spacer(modifier = Modifier.height(24.dp))
 
-        NextButton(onNextClick)
+        NextButton(uiState, onNextClick)
+        Spacer(modifier = Modifier.height(50.dp))
     }
 }
 
@@ -109,6 +118,7 @@ private fun PasswordInput(
             keyboardType = KeyboardType.Password,
             imeAction = ImeAction.Next
         ),
+        visualTransformation = PasswordVisualTransformation(),
         onValidate = onValidate
     )
 }
@@ -127,19 +137,22 @@ private fun PasswordCheckInput(
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Password,
             imeAction = ImeAction.Next
-        )
+        ),
+        visualTransformation = PasswordVisualTransformation()
     )
 }
 
 @Composable
 private fun NextButton(
+    uiState: SignUpUiState,
     onClick: () -> Unit
 ) {
     RunnersHiButton(
         text = "시작하기",
         onClick = onClick,
         style = ButtonStyle.FILLED,
-        modifier = Modifier.padding(bottom = 24.dp)
+        modifier = Modifier.padding(bottom = 24.dp),
+        enabled = isNextButtonEnabled(uiState)
     )
 }
 
@@ -160,4 +173,14 @@ private fun Step1ContentPreview() {
             validatePassword = {}
         )
     }
+}
+
+private fun isNextButtonEnabled(uiState: SignUpUiState): Boolean {
+    return uiState.email.isNotBlank() &&
+            uiState.password.isNotBlank() &&
+            uiState.passwordCheck.isNotBlank() &&
+            uiState.emailError == null &&
+            uiState.passwordError == null &&
+            uiState.passwordCheckError == null &&
+            !uiState.isLoading
 }

@@ -10,8 +10,13 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
 import java.util.UUID
 
-class LocalRunningDataSource(context: Context) {
-    private val dao = AppDatabase.getDatabase(context).runningDao()
+class LocalRunningDataSource(private val context: Context) {
+    private val database: AppDatabase by lazy {
+        AppDatabase.getDatabase(context)
+    }
+    private val dao: RunningDao by lazy {
+        database.runningDao()
+    }
     private var currentRunId: String? = null
     private var currentSegmentIndex: Int = 0
     

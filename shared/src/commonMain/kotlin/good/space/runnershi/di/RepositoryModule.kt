@@ -10,12 +10,12 @@ val repositoryModule = module {
     single<AuthRepository> {
         AuthRepositoryImpl(
             // named를 사용하여 정확한 클라이언트를 주입
-            httpClient = get(named("PublicClient")), 
+            httpClient = get(named("PublicClient")),
             authenticatedHttpClient = get(named("AuthClient")),
-            // BaseURL은 이미 HttpClient에 defaultRequest로 설정했다면 
-            // Repository 생성자에서 빼는 것도 좋은 리팩토링입니다. 
+            // BaseURL은 이미 HttpClient에 defaultRequest로 설정했다면
+            // Repository 생성자에서 빼는 것도 좋은 리팩토링입니다.
             // 일단은 주입하는 방식으로 보여드립니다.
-            baseUrl = get(named("BaseUrl")) 
+            baseUrl = get(named("BaseUrl"))
         )
     }
 }

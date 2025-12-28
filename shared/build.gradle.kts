@@ -82,7 +82,7 @@ kotlin {
                 implementation(libs.ktor.client.android)
                 implementation(libs.play.services.location)
 
-                implementation(libs.androidx.activity.compose) // setContent 사용
+                implementation(libs.androidx.activity.compose)
                 implementation(libs.androidx.lifecycle.viewmodel.compose) // ViewModel()
                 implementation(libs.androidx.security.crypto)
 

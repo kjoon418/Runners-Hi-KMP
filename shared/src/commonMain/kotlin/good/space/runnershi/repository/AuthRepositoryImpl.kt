@@ -5,6 +5,8 @@ import good.space.runnershi.model.dto.auth.LoginResponse
 import good.space.runnershi.model.dto.auth.SignUpRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -81,6 +83,52 @@ class AuthRepositoryImpl(
                 Result.success(Unit)
             } else {
                 Result.failure(Exception("로그아웃 실패: ${response.status}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun checkEmailAvailability(email: String): Result<Boolean> {
+        return try {
+            // TODO: 실제 API 엔드포인트로 수정
+            val response = httpClient.get("$baseUrl/api/v1/auth/check-email") {
+                parameter("email", email)
+            }
+
+            when (response.status) {
+                HttpStatusCode.OK, HttpStatusCode.NoContent -> {
+                    Result.success(true)
+                }
+                HttpStatusCode.Conflict -> {
+                    Result.success(false)
+                }
+                else -> {
+                    Result.failure(Exception("서버 오류: ${response.status}"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun checkNameAvailability(name: String): Result<Boolean> {
+        return try {
+            // TODO: 실제 API 엔드포인트로 수정
+            val response = httpClient.get("$baseUrl/api/v1/auth/check-name") {
+                parameter("name", name)
+            }
+
+            when (response.status) {
+                HttpStatusCode.OK, HttpStatusCode.NoContent -> {
+                    Result.success(true)
+                }
+                HttpStatusCode.Conflict -> {
+                    Result.success(false)
+                }
+                else -> {
+                    Result.failure(Exception("서버 오류: ${response.status}"))
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)

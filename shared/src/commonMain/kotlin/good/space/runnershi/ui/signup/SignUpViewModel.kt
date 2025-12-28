@@ -7,6 +7,7 @@ import good.space.runnershi.model.domain.auth.AuthValidationResult
 import good.space.runnershi.model.domain.auth.Sex
 import good.space.runnershi.model.domain.auth.ValidateEmailUseCase
 import good.space.runnershi.model.domain.auth.ValidatePasswordUseCase
+import good.space.runnershi.model.dto.auth.LoginResponse
 import good.space.runnershi.model.dto.auth.SignUpRequest
 import good.space.runnershi.repository.AuthRepository
 import kotlinx.coroutines.channels.Channel
@@ -20,6 +21,7 @@ enum class SignUpStep {
     EmailPassword,
     NameCharacter
 }
+
 data class SignUpUiState(
     val currentStep: SignUpStep = SignUpStep.EmailPassword,
 
@@ -34,6 +36,10 @@ data class SignUpUiState(
     val passwordCheckError: String? = null,
     val nameError: String? = null,
     val signUpError: String? = null, // 서버 통신 에러 등 전체 에러
+
+    val emailVerified: Boolean = false,
+    val passwordVerified: Boolean = false,
+    val nameVerified: Boolean = false,
 
     val isLoading: Boolean = false
 )
@@ -56,25 +62,52 @@ class SignUpViewModel(
     val sideEffect = _sideEffect.receiveAsFlow()
 
     fun onEmailChange(email: String) {
-        _uiState.update { it.copy(email = email, emailError = null) }
+        _uiState.update {
+            it.copy(
+                email = email.trim(),
+                emailError = null,
+                emailVerified = false
+            )
+        }
     }
 
     fun onPasswordChange(password: String) {
-        _uiState.update { it.copy(password = password, passwordError = null) }
+        _uiState.update {
+            val newState = it.copy(
+                password = password,
+                passwordError = null
+            )
+
+            newState.copy(
+                passwordVerified = newState.isPasswordReady()
+            )
+        }
     }
 
     fun onPasswordCheckChange(passwordCheck: String) {
         _uiState.update {
-            val newState = it.copy(passwordCheck = passwordCheck)
+            val newState = it.copy(
+                passwordCheck = passwordCheck,
+                passwordCheckError = null
+            )
 
             val error = newState.passwordCheckErrorMessage
 
-            newState.copy(passwordCheckError = error)
+            newState.copy(
+                passwordCheckError = error,
+                passwordVerified = newState.isPasswordReady()
+            )
         }
     }
 
     fun onNameChange(name: String) {
-        _uiState.update { it.copy(name = name, nameError = null) }
+        _uiState.update {
+            it.copy(
+                name = name.trim(),
+                nameError = null,
+                nameVerified = false
+            )
+        }
     }
 
     fun onCharacterSelect(sex: Sex) {
@@ -88,8 +121,7 @@ class SignUpViewModel(
             return
         }
 
-        if (currentState.hasEmailPasswordError()
-            || currentState.hasNameCharacterError()) {
+        if (checkValidationAndSetErrors(currentState)) {
             return
         }
 
@@ -97,12 +129,29 @@ class SignUpViewModel(
             _uiState.update { it.copy(isLoading = true, signUpError = null) }
 
             try {
-                signUp()
+                val result = signUp()
+
+                result.onSuccess { response ->
+                    tokenStorage.saveTokens(response.accessToken, response.refreshToken)
+                    _uiState.update { it.copy(isLoading = false) }
+                    _sideEffect.send(SignUpSideEffect.NavigateToHome)
+                }.onFailure { e ->
+                    val errorMessage = e.message ?: "회원가입에 실패했습니다."
+
+                    _uiState.update {
+                        SignUpUiState(
+                            currentStep = SignUpStep.EmailPassword,
+                            signUpError = errorMessage,
+                            isLoading = false
+                        )
+                    }
+                }
             } catch (_: Exception) {
                 _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        signUpError = "알 수 없는 오류가 발생했습니다."
+                    SignUpUiState(
+                        currentStep = SignUpStep.EmailPassword,
+                        signUpError = "알 수 없는 오류가 발생했습니다. 다시 시도해주세요.",
+                        isLoading = false
                     )
                 }
             }
@@ -113,7 +162,9 @@ class SignUpViewModel(
         val currentState = _uiState.value
 
         if (currentState.currentStep == SignUpStep.EmailPassword) {
-            if (currentState.hasEmailPasswordError()) {
+            if (currentState.isEmailNotVerified() || currentState.isPasswordNotVerified()) {
+                println("Email not verified = ${currentState.isEmailNotVerified()}")
+                println("Password not verified = ${currentState.isPasswordNotVerified()}")
                 return
             }
 
@@ -141,8 +192,9 @@ class SignUpViewModel(
 
     fun validateEmail() {
         val currentState = _uiState.value
+        val email = currentState.email
 
-        val emailValidation = validateEmailUseCase(currentState.email)
+        val emailValidation = validateEmailUseCase(email)
         if (emailValidation !is AuthValidationResult.Success) {
             val errorMsg = when (emailValidation) {
                 AuthValidationResult.Error.Blank -> "이메일을 입력해주세요."
@@ -153,7 +205,34 @@ class SignUpViewModel(
             return
         }
 
-        // TODO: 서버로 이메일 중복 확인 요청
+        viewModelScope.launch {
+            val result = authRepository.checkEmailAvailability(email)
+
+            result.onSuccess { isAvailable ->
+                if (isAvailable) {
+                    _uiState.update {
+                        it.copy(
+                            emailError = null,
+                            emailVerified = true
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            emailError = "이미 사용 중인 이메일입니다.",
+                            emailVerified = false
+                        )
+                    }
+                }
+            }.onFailure {
+                _uiState.update {
+                    it.copy(
+                        emailError = "인터넷 연결을 확인해주세요.",
+                        emailVerified = false
+                    )
+                }
+            }
+        }
     }
 
     fun validatePassword() {
@@ -167,27 +246,45 @@ class SignUpViewModel(
 
     fun validateName() {
         val currentState = _uiState.value
+        val name = currentState.name
 
-        // TODO: 서버로 이름 중복 확인 요청
-    }
+        if (name.isEmpty()) {
+            _uiState.update { it.copy(nameError = "이름이 비어 있습니다.") }
+        }
 
-    private suspend fun signUp() {
-        val currentState = _uiState.value
+        viewModelScope.launch {
+            val result = authRepository.checkNameAvailability(name)
 
-        val result = authRepository.signUp(currentState.toSignUpRequest())
-
-        result.onSuccess { response ->
-            tokenStorage.saveTokens(response.accessToken, response.refreshToken)
-            _uiState.update { it.copy(isLoading = false) }
-            _sideEffect.send(SignUpSideEffect.NavigateToHome)
-        }.onFailure { e ->
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    signUpError = e.message ?: "회원가입에 실패했습니다."
-                )
+            result.onSuccess { isAvailable ->
+                if (isAvailable) {
+                    _uiState.update {
+                        it.copy(
+                            nameError = null,
+                            nameVerified = true
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            nameError = "이미 사용 중인 이름입니다.",
+                            nameVerified = false
+                        )
+                    }
+                }
+            }.onFailure {
+                _uiState.update { it.copy(nameError = "인터넷 연결을 확인해주세요.") }
             }
         }
+    }
+
+    fun clearSignUpError() {
+        _uiState.update { it.copy(signUpError = null) }
+    }
+
+    private suspend fun signUp(): Result<LoginResponse> {
+        val currentState = _uiState.value
+
+        return authRepository.signUp(currentState.toSignUpRequest())
     }
 
     private val SignUpUiState.passwordCheckErrorMessage: String?
@@ -199,19 +296,71 @@ class SignUpViewModel(
             return null
         }
 
-    private fun SignUpUiState.hasEmailPasswordError(): Boolean {
-        return emailError != null
-                || passwordError != null
-                || passwordCheckError != null
-                || email.isBlank()
-                || password.isBlank()
+    private fun checkValidationAndSetErrors(state: SignUpUiState): Boolean {
+        var hasError = false
+        var newState = state
+
+        // 이메일 검사
+        if (state.isEmailNotVerified()) {
+            newState = newState.copy(emailError = "이메일을 확인해주세요.")
+            hasError = true
+        }
+
+        // 비밀번호 검사
+        if (state.isPasswordNotVerified()) {
+            newState = newState.copy(passwordError = "비밀번호를 확인해주세요.")
+            hasError = true
+        }
+
+        // 이름 검사
+        if (state.isNameNotVerified()) {
+            newState = newState.copy(nameError = "이름을 확인해주세요.")
+            hasError = true
+        }
+
+        // 캐릭터 검사
+        if (state.isCharacterNotSelected()) {
+            newState = newState.copy(signUpError = "캐릭터를 선택해주세요.")
+            hasError = true
+        }
+
+        if (hasError) {
+            _uiState.value = newState
+        }
+
+        return hasError
     }
 
-    private fun SignUpUiState.hasNameCharacterError(): Boolean {
-        return nameError != null
-                || name.isBlank()
-                || characterSex == null
+    private fun SignUpUiState.isEmailNotVerified(): Boolean {
+        return !emailVerified
+                || email.isBlank()
+                || emailError != null
     }
+
+    private fun SignUpUiState.isPasswordNotVerified(): Boolean {
+        return !passwordVerified
+                || password.isBlank()
+                || passwordCheck.isBlank()
+                || passwordError != null
+                || passwordCheckError != null
+    }
+
+    private fun SignUpUiState.isNameNotVerified(): Boolean {
+        return !nameVerified
+                || name.isBlank()
+    }
+
+    private fun SignUpUiState.isCharacterNotSelected(): Boolean {
+        return characterSex == null
+    }
+
+    private fun SignUpUiState.isPasswordReady(): Boolean {
+        val validateResult = validatePasswordUseCase(password)
+
+        return validateResult is AuthValidationResult.Success
+                && passwordCheck == password
+    }
+
 
     private fun SignUpUiState.toSignUpRequest(): SignUpRequest {
         return SignUpRequest(

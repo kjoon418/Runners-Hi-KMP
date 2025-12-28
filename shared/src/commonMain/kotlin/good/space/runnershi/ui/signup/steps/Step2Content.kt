@@ -1,6 +1,6 @@
 package good.space.runnershi.ui.signup.steps
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,16 +8,18 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,11 +29,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import good.space.runnershi.model.domain.auth.Sex
+import good.space.runnershi.ui.character.CharacterAppearance
+import good.space.runnershi.ui.character.ItemType
+import good.space.runnershi.ui.character.LayeredCharacter
+import good.space.runnershi.ui.character.defaultResources
 import good.space.runnershi.ui.components.ButtonStyle
 import good.space.runnershi.ui.components.RunnersHiButton
 import good.space.runnershi.ui.components.RunnersHiTextField
@@ -39,7 +47,6 @@ import good.space.runnershi.ui.signup.SignUpUiState
 import good.space.runnershi.ui.theme.RunnersHiTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-// 내부 로직용 Enum (외부 노출 불필요)
 private enum class Step2Focus {
     Name, Character
 }
@@ -54,29 +61,25 @@ fun Step2Content(
 ) {
     var focusMode by remember { mutableStateOf(Step2Focus.Name) }
     val focusManager = LocalFocusManager.current
+    val scrollState = rememberScrollState()
 
     val attemptMoveToCharacter = {
         onValidateName()
 
-        if (uiState.name.isNotBlank() && uiState.nameError == null) {
+        if (uiState.name.isNotBlank()
+            && uiState.nameError == null
+            && uiState.nameVerified
+        ) {
             focusManager.clearFocus()
             focusMode = Step2Focus.Character
         }
     }
 
-    val nameWeight by animateFloatAsState(
-        targetValue = if (focusMode == Step2Focus.Name) 5f else 1.5f,
-        label = "NameWeight"
-    )
-    val charWeight by animateFloatAsState(
-        targetValue = if (focusMode == Step2Focus.Character) 5f else 1.5f,
-        label = "CharWeight"
-    )
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
+            .verticalScroll(scrollState)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
@@ -90,7 +93,6 @@ fun Step2Content(
         Spacer(modifier = Modifier.height(12.dp))
 
         NameSection(
-            weight = nameWeight,
             isActive = focusMode == Step2Focus.Name,
             name = uiState.name,
             nameError = uiState.nameError,
@@ -103,7 +105,6 @@ fun Step2Content(
         Spacer(modifier = Modifier.height(16.dp))
 
         CharacterSection(
-            weight = charWeight,
             isActive = focusMode == Step2Focus.Character,
             selectedSex = uiState.characterSex,
             onSectionClick = attemptMoveToCharacter,
@@ -112,7 +113,6 @@ fun Step2Content(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- 가입 완료 버튼 ---
         RunnersHiButton(
             text = "가입 완료",
             onClick = onSignUpClick,
@@ -126,13 +126,14 @@ fun Step2Content(
 @Composable
 private fun HeaderSection() {
     Text(
-        text = "캐릭터 생성을 위해 몇 가지 정보가 필요해요."
+        text = "캐릭터 생성을 위해\n몇 가지 정보가 필요해요",
+        style = RunnersHiTheme.typography.titleLarge,
+        textAlign = TextAlign.Center
     )
 }
 
 @Composable
-private fun ColumnScope.NameSection(
-    weight: Float,
+private fun NameSection(
     isActive: Boolean,
     name: String,
     nameError: String?,
@@ -143,14 +144,17 @@ private fun ColumnScope.NameSection(
 ) {
     Box(
         modifier = Modifier
-            .weight(weight)
             .fillMaxWidth()
+            .animateContentSize()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
-            ) { onSectionClick() }
+            ) { onSectionClick() },
+        contentAlignment = Alignment.Center
     ) {
-        Column {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
                 text = "이름을 정해주세요",
                 style = if (isActive) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleMedium,
@@ -172,8 +176,8 @@ private fun ColumnScope.NameSection(
                 )
             } else {
                 Text(
-                    text = name.ifBlank { "아직 입력되지 않았습니다" },
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = name.ifBlank { "" },
+                    style = MaterialTheme.typography.titleLarge,
                     color = if (name.isBlank()) Color.LightGray else Color.Black
                 )
             }
@@ -182,8 +186,7 @@ private fun ColumnScope.NameSection(
 }
 
 @Composable
-private fun ColumnScope.CharacterSection(
-    weight: Float,
+private fun CharacterSection(
     isActive: Boolean,
     selectedSex: Sex?,
     onSectionClick: () -> Unit,
@@ -191,18 +194,22 @@ private fun ColumnScope.CharacterSection(
 ) {
     Box(
         modifier = Modifier
-            .weight(weight)
             .fillMaxWidth()
+            .animateContentSize()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
-            ) { onSectionClick() }
+            ) { onSectionClick() },
+        contentAlignment = Alignment.Center
     ) {
-        Column {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
                 text = if (isActive) "나를 표현할\n캐릭터를 골라주세요" else "선택한 캐릭터",
-                style = if (isActive) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleMedium,
-                color = if (isActive) Color.Black else Color.Gray
+                style = if (isActive) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                color = if (isActive) Color.Black else Color.Gray,
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -222,11 +229,20 @@ private fun ColumnScope.CharacterSection(
                     }
                 }
             } else {
-                Text(
-                    text = selectedSex?.name ?: "선택되지 않음",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (selectedSex == null) Color.LightGray else Color.Black
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Sex.entries.forEach { sex ->
+                        Box(modifier = Modifier.alpha(0.6f)) {
+                            LayeredCharacter(
+                                appearance = getCharacterAppearance(sex),
+                                modifier = Modifier.size(60.dp),
+                                isPlaying = false
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -241,9 +257,9 @@ private fun CharacterItem(
 ) {
     Box(
         modifier = modifier
-            .height(120.dp)
+            .height(180.dp)
             .background(
-                color = if (isSelected) RunnersHiTheme.colorScheme.primaryContainer else Color.Transparent,
+                color = if (isSelected) RunnersHiTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent,
                 shape = RoundedCornerShape(12.dp)
             )
             .border(
@@ -254,13 +270,31 @@ private fun CharacterItem(
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        // 추후 이미지 리소스로 교체 가능
-        Text(
-            text = sex.name,
-            style = MaterialTheme.typography.titleMedium,
-            color = if (isSelected) RunnersHiTheme.colorScheme.primary else Color.Gray
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            LayeredCharacter(
+                appearance = getCharacterAppearance(sex),
+                modifier = Modifier
+                    .size(120.dp)
+                    .padding(0.dp),
+                isPlaying = isSelected
+            )
+        }
     }
+}
+
+private fun getCharacterAppearance(sex: Sex): CharacterAppearance {
+    return CharacterAppearance(
+        base = defaultResources(sex, ItemType.BASE) ?: emptyList(),
+
+        hair = defaultResources(sex, ItemType.HAIR),
+        top = defaultResources(sex, ItemType.TOP),
+        bottom = defaultResources(sex, ItemType.BOTTOM),
+        shoes = defaultResources(sex, ItemType.SHOES),
+        head = defaultResources(sex, ItemType.HEAD),
+    )
 }
 
 @Preview

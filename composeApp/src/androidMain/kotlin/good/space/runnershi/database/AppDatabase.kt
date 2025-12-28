@@ -10,6 +10,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Dao
 interface RunningDao {
@@ -89,15 +91,48 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * 데이터베이스 인스턴스를 가져옵니다.
+         * 
+         * 주의: 이 메서드는 동기적으로 반환합니다. 
+         * Room.databaseBuilder().build()는 내부적으로 백그라운드 스레드를 사용하지만,
+         * 메인 스레드에서 호출되면 블로킹될 수 있습니다.
+         * 
+         * 권장: 앱 시작 시 initializeDatabase()를 호출하여 미리 초기화하거나,
+         * 이 메서드는 백그라운드 스레드에서만 호출하세요.
+         */
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                Room.databaseBuilder(
+                INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "runners_hi.db"
                 )
                 .addMigrations(MIGRATION_1_2)
-                .build().also { INSTANCE = it }
+                .build()
+                .also { INSTANCE = it }
+            }
+        }
+        
+        /**
+         * 비동기적으로 데이터베이스를 초기화합니다.
+         * 앱 시작 시 백그라운드에서 미리 초기화하여 첫 사용 시 지연을 방지합니다.
+         */
+        suspend fun initializeDatabase(context: Context) {
+            if (INSTANCE == null) {
+                withContext(Dispatchers.IO) {
+                    synchronized(this@Companion) {
+                        if (INSTANCE == null) {
+                            INSTANCE = Room.databaseBuilder(
+                                context.applicationContext,
+                                AppDatabase::class.java,
+                                "runners_hi.db"
+                            )
+                            .addMigrations(MIGRATION_1_2)
+                            .build()
+                        }
+                    }
+                }
             }
         }
     }
