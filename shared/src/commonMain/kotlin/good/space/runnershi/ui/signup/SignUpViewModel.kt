@@ -89,8 +89,7 @@ class SignUpViewModel(
             return
         }
 
-        if (currentState.hasEmailPasswordError()
-            || currentState.hasNameCharacterError()) {
+        if (checkValidationAndSetErrors(currentState)) {
             return
         }
 
@@ -100,12 +99,12 @@ class SignUpViewModel(
             try {
                 val result = signUp()
 
-                if (result.isSuccess) {
+                result.onSuccess { response ->
+                    tokenStorage.saveTokens(response.accessToken, response.refreshToken)
+                    _uiState.update { it.copy(isLoading = false) }
                     _sideEffect.send(SignUpSideEffect.NavigateToHome)
-                } else {
-                    // 회원가입 API 호출 후 실패 응답시 상태 초기화
-                    val errorMessage = result.exceptionOrNull()?.message
-                        ?: "이미 가입된 계정이거나 오류가 발생했습니다."
+                }.onFailure { e ->
+                    val errorMessage = e.message ?: "회원가입에 실패했습니다."
 
                     _uiState.update {
                         SignUpUiState(
@@ -191,23 +190,7 @@ class SignUpViewModel(
 
     private suspend fun signUp(): Result<LoginResponse> {
         val currentState = _uiState.value
-
-        val result = authRepository.signUp(currentState.toSignUpRequest())
-
-        result.onSuccess { response ->
-            tokenStorage.saveTokens(response.accessToken, response.refreshToken)
-            _uiState.update { it.copy(isLoading = false) }
-            _sideEffect.send(SignUpSideEffect.NavigateToHome)
-        }.onFailure { e ->
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    signUpError = e.message ?: "회원가입에 실패했습니다."
-                )
-            }
-        }
-
-        return result
+        return authRepository.signUp(currentState.toSignUpRequest())
     }
 
     private val SignUpUiState.passwordCheckErrorMessage: String?
@@ -218,6 +201,49 @@ class SignUpViewModel(
 
             return null
         }
+
+    private fun checkValidationAndSetErrors(state: SignUpUiState): Boolean {
+        var hasError = false
+        var newState = state
+
+        // 이메일 검사
+        if (state.email.isBlank()) {
+            newState = newState.copy(emailError = "이메일을 입력해주세요.")
+            hasError = true
+        }
+
+        // 비밀번호 검사
+        if (state.password.isBlank()) {
+            newState = newState.copy(passwordError = "비밀번호를 입력해주세요.")
+            hasError = true
+        }
+
+        // 비밀번호 확인 일치 여부
+        if (state.password != state.passwordCheck) {
+            newState = newState.copy(passwordCheckError = "비밀번호가 일치하지 않습니다.")
+            hasError = true
+        }
+
+        // 이름 검사
+        if (state.name.isBlank()) {
+            newState = newState.copy(nameError = "이름을 입력해주세요.")
+            hasError = true
+        }
+
+        // 성별 검사
+        if (state.characterSex == null) {
+            // 성별 에러 필드가 없다면 전체 에러에 표시하거나 별도 처리
+            newState = newState.copy(signUpError = "성별을 선택해주세요.")
+            hasError = true
+        }
+
+        if (hasError) {
+            _uiState.value = newState
+        }
+
+        // 기존의 hasEmailPasswordError() 등도 체크 (이미 에러가 떠있는 경우)
+        return hasError || state.hasEmailPasswordError() || state.hasNameCharacterError()
+    }
 
     private fun SignUpUiState.hasEmailPasswordError(): Boolean {
         return emailError != null
