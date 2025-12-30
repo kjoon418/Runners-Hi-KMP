@@ -6,10 +6,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -26,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import good.space.runnershi.ui.theme.RunnersHiTheme
 import good.space.runnershi.util.format
@@ -51,7 +54,7 @@ fun PersonalBestIndicator(
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = backgroundColor
         ),
@@ -59,14 +62,16 @@ fun PersonalBestIndicator(
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .widthIn(max = 100.dp)
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+            horizontalArrangement = Arrangement.Center
         ) {
             // 트로피, 진척도
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(24.dp)
             ) {
                 // 배경 트랙
                 CircularProgressIndicator(
@@ -82,7 +87,7 @@ fun PersonalBestIndicator(
                     progress = { progressPercent },
                     modifier = Modifier.matchParentSize(),
                     color = activeColor,
-                    strokeWidth = 4.dp,
+                    strokeWidth = 2.dp,
                     trackColor = Color.Transparent,
                     strokeCap = StrokeCap.Round
                 )
@@ -92,18 +97,20 @@ fun PersonalBestIndicator(
                     imageVector = Icons.Default.EmojiEvents,
                     contentDescription = "Trophy",
                     tint = activeColor,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(12.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             // 텍스트 정보
             Column {
                 Text(
                     text = "최고 기록",
                     color = activeColor,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 12.sp
+                    ),
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(2.dp))
@@ -112,7 +119,7 @@ fun PersonalBestIndicator(
                     color = activeColor,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
+                        fontSize = 14.sp
                     )
                 )
             }
