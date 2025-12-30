@@ -1,5 +1,6 @@
 package good.space.runnershi.global.running.service
 
+import good.space.runnershi.global.exception.UserNotFoundException
 import good.space.runnershi.global.running.domain.Running
 import good.space.runnershi.global.running.mapper.toLongestDistanceDto
 import good.space.runnershi.global.running.repository.RunningRepository
@@ -10,6 +11,7 @@ import good.space.runnershi.model.dto.running.UpdatedUserResponse
 import good.space.runnershi.model.dto.running.dailyQuestInfo
 import good.space.runnershi.model.dto.running.newBadgeInfo
 import good.space.runnershi.model.dto.user.AvatarInfo
+import good.space.runnershi.state.LevelPolicy
 import good.space.runnershi.user.domain.User
 import good.space.runnershi.user.repository.UserRepository
 import kotlinx.datetime.DateTimeUnit
@@ -52,7 +54,7 @@ class RunningService (
     @Transactional
     fun saveRunningStats(userId: Long, runCreateRequest: RunCreateRequest): UpdatedUserResponse {
         val user = userRepository.findById(userId)
-            .orElseThrow{ IllegalArgumentException("user with id $userId 를 찾을 수 없습니다. in RunningService") }
+            .orElseThrow{ UserNotFoundException() }
 
         val savedRunning = saveRunningData(user, runCreateRequest)
         updateUserByRunnigData(user, savedRunning)
@@ -86,15 +88,17 @@ class RunningService (
 
     fun getLongestDistance(userId: Long): LongestDistance {
         val user: User = userRepository.findById(userId)
-            .orElseThrow{ IllegalArgumentException("user with id $userId 를 찾을 수 없습니다. in RunningService") }
+            .orElseThrow{ UserNotFoundException() }
 
         return user.toLongestDistanceDto()
     }
 
     private fun User.toUpdatedUserResponse(running: Running): UpdatedUserResponse {
         return UpdatedUserResponse(
-            userId = this.id ?: throw IllegalStateException("ID가 없는 유저입니다."),
+            userId = this.id ?: throw UserNotFoundException(),
             userExp = this.exp,
+            level = this.level,
+            userExpProgressPercentage = LevelPolicy.getProgressPercentage(this.exp),
             totalRunningDays = this.totalRunningDays,
             avatar = AvatarInfo(
                 head = this.avatar.head,
@@ -102,6 +106,7 @@ class RunningService (
                 bottom = this.avatar.bottom,
                 shoes = this.avatar.shoes
             ),
+            unlockedAvatars = this.newUnlockedAvatars.toList(),
             badges = this.achievements.map { it.name },
             newBadges = this.newAchievements.map {
                 newBadgeInfo(

@@ -1,17 +1,21 @@
 package good.space.runnershi.model.dto.running
 
 import good.space.runnershi.model.dto.user.AvatarInfo
+import good.space.runnershi.model.dto.user.NewUnlockedAvatarInfo
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class UpdatedUserResponse(
     val userId: Long,
     val userExp: Long,
+    val level: Int,
     val totalRunningDays: Long,
     val badges: List<String>,
     val newBadges: List<newBadgeInfo>,
     val dailyQuests: List<dailyQuestInfo>,
-    val avatar: AvatarInfo
+    val avatar: AvatarInfo,
+    val unlockedAvatars: List<NewUnlockedAvatarInfo>,
+    val userExpProgressPercentage: Int
 )
 
 @Serializable
