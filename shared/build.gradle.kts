@@ -59,6 +59,7 @@ kotlin {
                 implementation(compose.ui)
                 implementation(compose.components.resources)
                 implementation(compose.components.uiToolingPreview) // Preview 공통 지원
+                implementation(compose.materialIconsExtended)
 
                 // Koin Multiplatform
                 implementation(libs.koin.core)

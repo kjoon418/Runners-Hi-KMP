@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class QuestResponse(
-    val questId: String,
     val title: String,
     val exp: Long,
     val isCompleted: Boolean

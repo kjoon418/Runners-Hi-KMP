@@ -13,9 +13,6 @@ data class Resources(
     val fourth: DrawableResource
 )
 
-// 편의를 위해 리스트로 변환하는 확장 함수 추가 (선택 사항)
-fun Resources.toList(): List<DrawableResource> = listOf(first, second, third, fourth)
-
 @Serializable
 enum class HeadItem(
     val resources: Resources?,

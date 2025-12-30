@@ -1,6 +1,5 @@
 package good.space.runnershi.ui.login
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -28,13 +26,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import good.space.runnershi.ui.components.ButtonStyle
+import good.space.runnershi.ui.components.Logo
 import good.space.runnershi.ui.components.RunnersHiButton
 import good.space.runnershi.ui.components.RunnersHiTextField
 import good.space.runnershi.ui.theme.RunnersHiTheme
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import runnershi.shared.generated.resources.Res
-import runnershi.shared.generated.resources.logo
 
 @Composable
 fun LoginScreen(
@@ -75,7 +71,7 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Logo()
+            Logo(400.dp)
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -107,16 +103,6 @@ fun LoginScreen(
             modifier = Modifier.align(Alignment.Center)
         )
     }
-}
-
-@Composable
-private fun Logo() {
-    Image(
-        painter = painterResource(Res.drawable.logo),
-        contentDescription = "Runners Hi Logo",
-        modifier = Modifier
-            .width(400.dp)
-    )
 }
 
 @Composable

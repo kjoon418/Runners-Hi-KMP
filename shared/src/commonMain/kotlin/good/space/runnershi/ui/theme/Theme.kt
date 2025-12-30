@@ -38,6 +38,8 @@ data class RunnersHiCustomColors(
 
     val questLight: Color,
     val questDark: Color,
+    val clearedQuestLight: Color,
+    val clearedQuestDark: Color,
 
     val trophyLight: Color,
     val trophyDark: Color,
@@ -65,6 +67,8 @@ val LightCustomColors = RunnersHiCustomColors(
 
     questLight = SkyBlue50,
     questDark = SkyBlue100,
+    clearedQuestLight = Green100,
+    clearedQuestDark = Green300,
 
     trophyLight = Yellow50,
     trophyDark = Yellow300,

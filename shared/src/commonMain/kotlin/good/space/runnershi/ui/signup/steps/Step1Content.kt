@@ -1,6 +1,5 @@
 package good.space.runnershi.ui.signup.steps
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -24,12 +22,10 @@ import androidx.compose.ui.unit.dp
 import good.space.runnershi.ui.components.ButtonStyle
 import good.space.runnershi.ui.components.RunnersHiButton
 import good.space.runnershi.ui.components.RunnersHiTextField
+import good.space.runnershi.ui.components.SignUpLogo
 import good.space.runnershi.ui.signup.SignUpUiState
 import good.space.runnershi.ui.theme.RunnersHiTheme
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import runnershi.shared.generated.resources.Res
-import runnershi.shared.generated.resources.logo_signup
 
 @Composable
 fun Step1Content(
@@ -56,7 +52,7 @@ fun Step1Content(
                 indication = null
             ) { focusManager.clearFocus() }
     ) {
-        Logo()
+        SignUpLogo(400.dp)
         Spacer(modifier = Modifier.height(24.dp))
 
         EmailInput(uiState, onEmailChange, validateEmail)
@@ -71,15 +67,6 @@ fun Step1Content(
         NextButton(uiState, onNextClick)
         Spacer(modifier = Modifier.height(50.dp))
     }
-}
-
-@Composable
-private fun Logo() {
-    Image(
-        painter = painterResource(Res.drawable.logo_signup),
-        contentDescription = "Runners Hi Logo",
-        modifier = Modifier.width(400.dp)
-    )
 }
 
 @Composable

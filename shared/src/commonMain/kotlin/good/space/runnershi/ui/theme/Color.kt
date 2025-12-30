@@ -40,6 +40,8 @@ val Amber600 = Color(0xFFEAA400)
 // ==================================================================
 // Green Scale
 // ==================================================================
+val Green100 = Color(0xFFE9FFEA)
+val Green300 = Color(0xFFE0FCE1)
 val Green500 = Color(0xFF74BB42)
 val Green600 = Color(0xFF68A93B)
 

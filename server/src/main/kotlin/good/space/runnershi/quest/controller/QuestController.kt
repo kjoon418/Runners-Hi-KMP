@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/quest")
-class questController (
+class QuestController (
     private val questService: QuestService
     ){
     @Operation(summary = "일일 퀘스트 조회", description = "오늘의 퀘스트 목록을 조회합니다.")

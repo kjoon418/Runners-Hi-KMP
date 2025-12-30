@@ -39,7 +39,7 @@ fun App() {
                 composable(route = Screen.SignUp.name) {
                     SignUpRoute(
                         navigateBack = {
-                            navController.popBackStack() // 뒤로 가기
+                          navController.popBackStack() // 뒤로 가기
                         },
                         navigateToHome = {
                             navController.navigate(Screen.Home.name)
@@ -47,9 +47,13 @@ fun App() {
                     )
                 }
 
-                // --- [홈 화면] ---
+                // 홈 화면
                 composable(route = Screen.Home.name) {
-                    HomeRoute()
+                    HomeRoute(
+                        navigateToRun = {
+                            navController.navigate(Screen.RUN.name)
+                        }
+                    )
                 }
             }
         }

@@ -1,6 +1,8 @@
 package good.space.runnershi.di
 
 import good.space.runnershi.BuildKonfig
+import good.space.runnershi.auth.TokenStorage
+import good.space.runnershi.network.ApiClient
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -58,5 +60,13 @@ val networkModule = module {
                 url(get<String>(named("BaseUrl")))
             }
         }
+    }
+
+    // 4. ApiClient (인증이 필요한 요청용)
+    single {
+        ApiClient(
+            tokenStorage = get<TokenStorage>(),
+            baseUrl = get<String>(named("BaseUrl"))
+        )
     }
 }
