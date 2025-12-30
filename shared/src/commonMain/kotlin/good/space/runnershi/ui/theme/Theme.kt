@@ -25,7 +25,7 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Gray900,
     onSurfaceVariant = Gray700,
     
-    error = Red,
+    error = PureRed,
     onError = White100
 )
 
@@ -55,7 +55,10 @@ data class RunnersHiCustomColors(
     val resumeDark: Color,
 
     val stopLight: Color,
-    val stopDark: Color
+    val stopDark: Color,
+
+    val calory: Color,
+    val cardBackground: Color
 )
 
 val LightCustomColors = RunnersHiCustomColors(
@@ -84,7 +87,10 @@ val LightCustomColors = RunnersHiCustomColors(
     resumeDark = Green600,
 
     stopLight = Gray600,
-    stopDark = Gray800
+    stopDark = Gray800,
+
+    calory = Red300,
+    cardBackground = Gray800
 )
 
 val LocalRunnersHiCustomColors = staticCompositionLocalOf { LightCustomColors
