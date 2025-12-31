@@ -103,6 +103,9 @@ abstract class User(
     @Transient
     val newUnlockedAvatars: MutableList<NewUnlockedAvatarInfo> = mutableListOf()
 
+    @Transient
+    val newCompletedQuests: MutableList<Quest> = mutableListOf()
+
     var level: Int = 1
 
     fun refreshDailyQuestsIfNeeded() {
@@ -221,6 +224,7 @@ abstract class User(
                 status.isCompleted = true
 
                 this.increaseExp(status.quest.exp)
+                this.newCompletedQuests.add(status.quest)
             }
         }
     }

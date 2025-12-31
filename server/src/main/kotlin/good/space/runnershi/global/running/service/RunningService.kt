@@ -120,6 +120,13 @@ class RunningService (
                     exp = status.quest.exp,
                     isComplete = status.isCompleted
                 )
+            },
+            completedQuests = this.newCompletedQuests.map { quest ->
+                dailyQuestInfo(
+                    title = quest.title,
+                    exp = quest.exp,
+                    isComplete = true
+                )
             }
         )
     }

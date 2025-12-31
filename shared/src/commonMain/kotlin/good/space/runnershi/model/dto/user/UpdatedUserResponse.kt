@@ -15,7 +15,8 @@ data class UpdatedUserResponse(
     val dailyQuests: List<dailyQuestInfo>,
     val avatar: AvatarInfo,
     val unlockedAvatars: List<NewUnlockedAvatarInfo>,
-    val userExpProgressPercentage: Int
+    val userExpProgressPercentage: Int,
+    val completedQuests: List<dailyQuestInfo>,
 )
 
 @Serializable
