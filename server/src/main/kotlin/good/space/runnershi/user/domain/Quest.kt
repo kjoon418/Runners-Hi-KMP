@@ -28,7 +28,7 @@ enum class Quest(
     ),
 
     MORNING_LV1(
-        "상쾌한 아침의 시작",
+        "오전 6~9시에 느끼는 상쾌한 시작",
         1,
         { running -> val hour = running.startedAt.toLocalDateTime(TimeZone.currentSystemDefault()).hour
             hour in 6..9
@@ -38,7 +38,7 @@ enum class Quest(
     ),
 
     NONSTOP_LV1(
-        "멈추지 않는 심장",
+        "1000M 동안 멈추지 않는 심장",
         1,
         { running -> running.longestNonStopDistance >= 1_000},
         100,
@@ -46,7 +46,7 @@ enum class Quest(
     ),
 
     SPEED_LV1(
-        "바람을 가르는 속도",
+        "1OOOM, 7분 페이스 주파",
         1,
         { running ->
             val paceSeconds = running.duration.inWholeSeconds / (running.distanceMeters / 1000.0)
@@ -64,7 +64,6 @@ enum class Quest(
         201
     ),
 
-    // 2. 시간: 40분 이상 러닝 (유산소 효과 극대화)
     DURATION_LV2(
         "40분의 끈기",
         2,
@@ -75,7 +74,7 @@ enum class Quest(
 
     // 3. 아침: 오전 5시~9시 사이에 '3km' 이상 러닝 (LV1은 거리제한 없었음 -> 거리 조건 추가)
     MORNING_LV2(
-        "아침을 깨우는 3km",
+        "오전 5~9시 아침을 깨우는 3km",
         2,
         { run ->
             val hour = run.startedAt.toLocalDateTime(TimeZone.currentSystemDefault()).hour
@@ -96,7 +95,7 @@ enum class Quest(
 
     // 5. 속도: 3km 이상, 평균 페이스 6분 00초/km 이하 (조깅 수준 탈피)
     SPEED_LV2(
-        "6분 페이스 돌파",
+        "3키로, 6분 페이스 돌파",
         2,
         { run ->
             val paceSeconds = run.duration.inWholeSeconds / (run.distanceMeters / 1000.0)
@@ -131,7 +130,7 @@ enum class Quest(
 
     // 3. 아침: 오전 4시~8시 사이에 '5km' 이상 러닝 (미라클 모닝)
     MORNING_LV3(
-        "새벽을 여는 5km",
+        "오전 4~7시, 새벽을 여는 5km",
         3,
         { run ->
             val hour = run.startedAt.toLocalDateTime(TimeZone.currentSystemDefault()).hour
@@ -153,7 +152,7 @@ enum class Quest(
 
     // 5. 속도: 5km 이상, 평균 페이스 5분 00초/km 이하 (상급자 코스)
     SPEED_LV3(
-        "5분 페이스의 벽",
+        "5km, 5분 페이스의 벽",
         3,
         { run ->
             val paceSeconds = run.duration.inWholeSeconds / (run.distanceMeters / 1000.0)
