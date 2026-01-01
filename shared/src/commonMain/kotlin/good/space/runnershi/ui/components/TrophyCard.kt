@@ -39,8 +39,8 @@ fun TrophyCard(
 
     val backgroundBrush = Brush.horizontalGradient(
         colors = listOf(
-            customColors.trophyLight,
-            customColors.trophyDark
+            customColors.trophyDark,
+            customColors.trophyLight
         )
     )
 
