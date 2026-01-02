@@ -4,7 +4,7 @@ import good.space.runnershi.global.running.service.RunningService
 import good.space.runnershi.model.dto.running.LongestDistance
 import good.space.runnershi.model.dto.running.RunCreateRequest
 import good.space.runnershi.model.dto.running.RunningHistoryResponse
-import good.space.runnershi.model.dto.running.UpdatedUserResponse
+import good.space.runnershi.model.dto.user.UpdatedUserResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.format.annotation.DateTimeFormat

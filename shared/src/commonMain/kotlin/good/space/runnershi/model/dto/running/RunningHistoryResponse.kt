@@ -12,6 +12,7 @@ data class RunningHistoryResponse @OptIn(ExperimentalTime::class) constructor(
     @Serializable(with = InstantSerializer::class)
     val startedAt: Instant,
     val distanceMeters: Double,
+    @Serializable(with = DurationSerializer::class)
     val durationSeconds: Duration,
     val averagePace: Double
 )

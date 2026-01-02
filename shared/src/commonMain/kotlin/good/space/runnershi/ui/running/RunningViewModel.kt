@@ -6,7 +6,7 @@ import good.space.runnershi.model.domain.RunResult
 import good.space.runnershi.model.domain.location.LocationModel
 import good.space.runnershi.model.domain.running.PaceCalculator
 import good.space.runnershi.model.dto.running.LongestDistance
-import good.space.runnershi.model.dto.running.UpdatedUserResponse
+import good.space.runnershi.model.dto.user.UpdatedUserResponse
 import good.space.runnershi.repository.RunningRepository
 import good.space.runnershi.service.ServiceLauncher
 import good.space.runnershi.state.PauseType
@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
@@ -31,19 +32,33 @@ import kotlin.time.toDuration
 sealed interface RunningUiEvent {
     data class NavigateToResult(
         val userInfo: UpdatedUserResponse,
-        val runResult: RunResultToShow
+        val runResult: RunningResultToShow
     ) : RunningUiEvent
-    data object RunNotUploadable : RunningUiEvent
+    data class RunNotUploadable(
+        val runResult: RunningResultToShow
+    ) : RunningUiEvent
 }
 
-data class RunResultToShow(
+@Serializable
+data class RunningResultToShow(
     val distance: Double,
-    val runningDuration: Duration,
-    val totalDuration: Duration,
+    val runningDurationMillis: Long,
+    val totalDurationMillis: Long,
     val runningPace: String,
     val totalPace: String,
-    val calory: Int
-)
+    val calory: Int,
+    val pacePercentile: String? = null,  // 상위 몇 % (예: "43" = 상위 43%)
+    val pathSegments: List<List<LocationModel>> = emptyList()  // 러닝 경로 세그먼트
+) {
+    // Duration으로 변환하는 헬퍼 프로퍼티
+    @OptIn(ExperimentalTime::class)
+    val runningDuration: Duration
+        get() = runningDurationMillis.toDuration(DurationUnit.MILLISECONDS)
+    
+    @OptIn(ExperimentalTime::class)
+    val totalDuration: Duration
+        get() = totalDurationMillis.toDuration(DurationUnit.MILLISECONDS)
+}
 
 enum class UploadState {
     IDLE, UPLOADING, SUCCESS, FAILURE
@@ -156,9 +171,15 @@ class RunningViewModel(
         if (shouldUploadToServer(result)) {
             uploadRunData(result)
         } else {
-            // 미달 시 서버 전송 안 함 & DB 정리
+            // 미달 시 서버 전송 안 함 & DB 정리 (퍼센타일은 조회 가능하므로 조회 시도)
             viewModelScope.launch {
-                _uiEvent.send(RunningUiEvent.RunNotUploadable)
+                val percentileResult = runningRepository.getPercentile(
+                    distanceMeters = result.totalDistanceMeters,
+                    durationSeconds = result.duration.inWholeSeconds
+                )
+                val percentile = percentileResult.getOrNull()?.topPercent
+                
+                _uiEvent.send(RunningUiEvent.RunNotUploadable(result.toShow(percentile)))
                 onFinishCallback?.invoke()
             }
         }
@@ -169,7 +190,8 @@ class RunningViewModel(
     }
     
     private fun shouldUploadToServer(result: RunResult): Boolean {
-        return result.totalDistanceMeters >= 300.0 && result.duration.inWholeSeconds >= 180
+        return true
+//        return result.totalDistanceMeters >= 300.0 && result.duration.inWholeSeconds >= 180
     }
 
     private fun createRunResultSnapshot(): RunResult {
@@ -207,28 +229,24 @@ class RunningViewModel(
         viewModelScope.launch {
             _uploadState.value = UploadState.UPLOADING
             
-            runningRepository.saveRun(result)
+            // 러닝 기록 저장
+            val saveResult = runningRepository.saveRun(result)
+            
+            // 퍼센타일 조회
+            val percentileResult = runningRepository.getPercentile(
+                distanceMeters = result.totalDistanceMeters,
+                durationSeconds = result.duration.inWholeSeconds
+            )
+            
+            val percentile = percentileResult.getOrNull()?.topPercent
+            
+            saveResult
                 .onSuccess { updatedUserResponse ->
                     _uploadState.value = UploadState.SUCCESS
-
-                    val resultToShow = RunResultToShow(
-                        distance = result.totalDistanceMeters,
-                        runningDuration = result.duration,
-                        totalDuration = result.totalTime,
-                        runningPace = PaceCalculator.calculatePace(
-                            result.totalDistanceMeters,
-                            result.duration.inWholeSeconds
-                        ),
-                        totalPace = PaceCalculator.calculatePace(
-                            result.totalDistanceMeters,
-                            result.totalTime.inWholeSeconds
-                        ),
-                        calory = result.calories
-                    )
                     _uiEvent.send(
                         RunningUiEvent.NavigateToResult(
                             userInfo = updatedUserResponse,
-                            runResult = resultToShow
+                            runResult = result.toShow(percentile)
                         )
                     )
 
@@ -239,4 +257,24 @@ class RunningViewModel(
                 }
         }
     }
+
+    private fun RunResult.toShow(pacePercentile: String? = null): RunningResultToShow {
+        return RunningResultToShow(
+            distance = totalDistanceMeters,
+            runningDurationMillis = duration.inWholeMilliseconds,
+            totalDurationMillis = totalTime.inWholeMilliseconds,
+            runningPace = PaceCalculator.calculatePace(
+                totalDistanceMeters,
+                duration.inWholeSeconds
+            ),
+            totalPace = PaceCalculator.calculatePace(
+                totalDistanceMeters,
+                totalTime.inWholeSeconds
+            ),
+            calory = calories,
+            pacePercentile = pacePercentile,
+            pathSegments = pathSegments
+        )
+    }
 }
+

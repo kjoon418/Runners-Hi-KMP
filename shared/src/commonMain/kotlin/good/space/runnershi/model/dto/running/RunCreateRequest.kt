@@ -31,7 +31,7 @@ object InstantSerializer : kotlinx.serialization.KSerializer<Instant> {
  */
 object DurationSerializer : kotlinx.serialization.KSerializer<Duration> {
     override val descriptor = kotlinx.serialization.descriptors.PrimitiveSerialDescriptor(
-        "Duration",
+        "good.space.runnershi.Duration",
         kotlinx.serialization.descriptors.PrimitiveKind.LONG
     )
 

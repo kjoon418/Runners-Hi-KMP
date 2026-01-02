@@ -19,6 +19,7 @@ import good.space.runnershi.model.dto.running.LongestDistance
 import good.space.runnershi.state.PauseType
 import good.space.runnershi.ui.components.CalorieIndicator
 import good.space.runnershi.ui.components.Logo
+import good.space.runnershi.ui.components.MapCameraFocus
 import good.space.runnershi.ui.components.PersonalBestIndicator
 import good.space.runnershi.ui.components.RunControlPanel
 import good.space.runnershi.ui.components.RunningMap
@@ -37,7 +38,7 @@ fun RunningScreen(
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         RunningMap(
-            currentLocation = state.currentLocation,
+            focus = MapCameraFocus.FollowLocation(state.currentLocation),
             pathSegments = state.pathSegments,
             modifier = Modifier.fillMaxSize()
         )

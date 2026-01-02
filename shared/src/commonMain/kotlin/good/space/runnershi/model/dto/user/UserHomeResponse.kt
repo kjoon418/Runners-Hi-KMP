@@ -1,7 +1,6 @@
 package good.space.runnershi.model.dto.user
 
 import good.space.runnershi.model.domain.auth.Sex
-import good.space.runnershi.model.dto.running.BadgeInfo
 import kotlinx.serialization.Serializable
 
 @Serializable

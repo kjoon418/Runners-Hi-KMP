@@ -3,7 +3,9 @@ package good.space.runnershi.repository
 import good.space.runnershi.mapper.RunMapper
 import good.space.runnershi.model.domain.RunResult
 import good.space.runnershi.model.dto.running.LongestDistance
-import good.space.runnershi.model.dto.running.UpdatedUserResponse
+import good.space.runnershi.model.dto.user.UpdatedUserResponse
+import good.space.runnershi.model.dto.running.percentile.RunPercentileRequest
+import good.space.runnershi.model.dto.running.percentile.RunPercentileResponse
 import good.space.runnershi.network.ApiClient
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -52,6 +54,29 @@ class RunningRepositoryImpl(
                 else -> {
                     Result.failure(Exception("최대 거리 조회 실패: ${response.status}"))
                 }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    override suspend fun getPercentile(distanceMeters: Double, durationSeconds: Long): Result<RunPercentileResponse> {
+        return try {
+            val request = RunPercentileRequest(
+                totalDistanceMeters = distanceMeters,
+                durationSec = durationSeconds.toInt()
+            )
+            
+            val response = apiClient.httpClient.post("${apiClient.baseUrl}/api/v1/running/percentile") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+            
+            if (response.status == HttpStatusCode.OK) {
+                val percentileResponse = response.body<RunPercentileResponse>()
+                Result.success(percentileResponse)
+            } else {
+                Result.failure(Exception("퍼센타일 조회 실패: ${response.status}"))
             }
         } catch (e: Exception) {
             Result.failure(e)

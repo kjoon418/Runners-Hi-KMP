@@ -4,29 +4,29 @@ import good.space.runnershi.model.dto.running.LocationPoint
 import good.space.runnershi.user.domain.User
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
-import jakarta.persistence.Convert
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
+import jakarta.persistence.Transient
 import kotlin.time.Duration
-import good.space.runnershi.global.running.converter.KotlinDurationConverter
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 import good.space.runnershi.global.running.converter.KotlinInstantConverter
+import jakarta.persistence.Convert
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 @Entity
 @OptIn(ExperimentalTime::class)
 class Running (
-    @Convert(converter = KotlinDurationConverter::class)
     @Column(nullable = false)
-    val duration: Duration, // 실제 러닝 시간 (PAUSE 시간 제외)
+    val durationMillis: Long, // 실제 러닝 시간 (PAUSE 시간 제외) - 밀리초
 
-    @Convert(converter = KotlinDurationConverter::class)
     @Column(nullable = false)
-    val totalTime: Duration, // 휴식시간을 포함한 총 시간
+    val totalTimeMillis: Long, // 휴식시간을 포함한 총 시간 - 밀리초
 
     val distanceMeters: Double,
 
@@ -70,11 +70,21 @@ class Running (
     }
 
 
-    val averagePace: Double = if (distanceMeters > 0 && duration.inWholeSeconds > 0) {
-        1000 / (distanceMeters / duration.inWholeSeconds.toDouble())
+    // Duration 타입의 computed property (기존 코드 호환성)
+    // 데이터베이스에 저장되지 않도록 @Transient 추가
+    @get:Transient
+    val duration: Duration
+        get() = durationMillis.toDuration(DurationUnit.MILLISECONDS)
+    
+    @get:Transient
+    val totalTime: Duration
+        get() = totalTimeMillis.toDuration(DurationUnit.MILLISECONDS)
+
+    @get:Transient
+    val averagePace: Double = if (distanceMeters > 0 && durationMillis > 0) {
+        val durationSeconds = durationMillis / 1000.0
+        1000 / (distanceMeters / durationSeconds)
     } else {
         0.0
     }
-
-
 }

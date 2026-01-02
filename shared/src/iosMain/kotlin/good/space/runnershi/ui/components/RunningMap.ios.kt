@@ -12,7 +12,7 @@ import good.space.runnershi.model.domain.location.LocationModel
 
 @Composable
 actual fun RunningMap(
-    currentLocation: LocationModel?,
+    focus: MapCameraFocus,
     pathSegments: List<List<LocationModel>>,
     modifier: Modifier
 ) {

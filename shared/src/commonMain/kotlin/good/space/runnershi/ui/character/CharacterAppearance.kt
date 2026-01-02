@@ -1,5 +1,6 @@
 package good.space.runnershi.ui.character
 
+import good.space.runnershi.model.domain.auth.Sex
 import org.jetbrains.compose.resources.DrawableResource
 
 import runnershi.shared.generated.resources.Res.drawable
@@ -20,4 +21,12 @@ data class CharacterAppearance(
     val top: List<DrawableResource>? = null,
     val bottom: List<DrawableResource>? = null,
     val shoes: List<DrawableResource>? = null
+)
+
+val defaultCharacterAppearance = CharacterAppearance(
+    head = defaultResources(Sex.MALE, ItemType.HEAD),
+    hair = defaultResources(Sex.MALE, ItemType.HAIR),
+    top = defaultResources(Sex.MALE, ItemType.TOP),
+    bottom = defaultResources(Sex.MALE, ItemType.BOTTOM),
+    shoes = defaultResources(Sex.MALE, ItemType.SHOES)
 )
