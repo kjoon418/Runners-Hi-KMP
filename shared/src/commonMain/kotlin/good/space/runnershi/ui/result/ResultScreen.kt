@@ -159,6 +159,7 @@ fun ResultScreen(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(16.dp)
+                .padding(bottom = 50.dp)
         ) {
             RunnersHiButton(
                 text = "돌아가기",

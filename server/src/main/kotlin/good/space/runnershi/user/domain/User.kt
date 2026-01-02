@@ -79,7 +79,6 @@ abstract class User(
         name = "user_achievements",
         joinColumns = [JoinColumn(name = "user_id")]
     )
-
     @Enumerated(EnumType.STRING)
     @Column(name = "achievement")
     val achievements: MutableSet<Achievement> = mutableSetOf()
