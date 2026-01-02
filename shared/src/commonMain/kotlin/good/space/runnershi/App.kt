@@ -1,6 +1,7 @@
 package good.space.runnershi
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -112,16 +113,23 @@ fun App() {
                             userInfo = userInfo,
                             runResult = runResult,
                             onCloseClick = {
-                                // 홈 화면까지 모든 화면을 제거하고 홈으로 이동 (홈 화면은 유지)
-                                navController.navigate(Screen.Home.name) {
-                                    popUpTo(Screen.Home.name) { inclusive = false }
+                                // 홈 화면까지 모든 화면을 제거하고 홈으로 이동
+                                if (!navController.popBackStack(Screen.Home.name, inclusive = false)) {
+                                    // Home이 백스택에 없으면 navigate로 이동
+                                    navController.navigate(Screen.Home.name) {
+                                        popUpTo(Screen.Home.name) { inclusive = false }
+                                    }
                                 }
                             }
                         )
                     } else {
                         // 데이터가 없으면 홈으로 튕겨내기
-                        navController.navigate(Screen.Home.name) {
-                            popUpTo(Screen.Home.name) { inclusive = false }
+                        LaunchedEffect(Unit) {
+                            if (!navController.popBackStack(Screen.Home.name, inclusive = false)) {
+                                navController.navigate(Screen.Home.name) {
+                                    popUpTo(Screen.Home.name) { inclusive = false }
+                                }
+                            }
                         }
                     }
                 }
