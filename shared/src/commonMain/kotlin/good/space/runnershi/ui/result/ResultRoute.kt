@@ -10,5 +10,9 @@ fun ResultRoute(
     runResult: RunningResultToShow,
     onCloseClick: () -> Unit
 ) {
-    // TODO: 결과 화면 구현
+    ResultScreen(
+        userInfo = userInfo,
+        runResult = runResult,
+        onCloseClick = onCloseClick
+    )
 }

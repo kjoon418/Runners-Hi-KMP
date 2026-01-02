@@ -11,22 +11,22 @@ data class UpdatedUserResponse(
     val level: Int,
     val totalRunningDays: Long,
     val badges: List<String>,
-    val newBadges: List<newBadgeInfo>,
-    val dailyQuests: List<dailyQuestInfo>,
+    val newBadges: List<NewBadgeInfo>,
+    val dailyQuests: List<DailyQuestInfo>,
     val avatar: AvatarInfo,
     val unlockedAvatars: List<NewUnlockedAvatarInfo>,
     val userExpProgressPercentage: Int,
-    val completedQuests: List<dailyQuestInfo>,
+    val completedQuests: List<DailyQuestInfo>,
 )
 
 @Serializable
-data class newBadgeInfo(
+data class NewBadgeInfo(
     val name: String,
     val exp: Long
 )
 
 @Serializable
-data class dailyQuestInfo(
+data class DailyQuestInfo(
     val title: String,
     val exp: Long,
     val isComplete: Boolean

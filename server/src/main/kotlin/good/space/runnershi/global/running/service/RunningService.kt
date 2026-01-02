@@ -8,13 +8,12 @@ import good.space.runnershi.model.dto.running.LongestDistance
 import good.space.runnershi.model.dto.running.RunCreateRequest
 import good.space.runnershi.model.dto.running.RunningHistoryResponse
 import good.space.runnershi.model.dto.running.UpdatedUserResponse
-import good.space.runnershi.model.dto.running.dailyQuestInfo
-import good.space.runnershi.model.dto.running.newBadgeInfo
+import good.space.runnershi.model.dto.running.DailyQuestInfo
+import good.space.runnershi.model.dto.running.NewBadgeInfo
 import good.space.runnershi.model.dto.user.AvatarInfo
 import good.space.runnershi.state.LevelPolicy
 import good.space.runnershi.user.domain.User
 import good.space.runnershi.user.repository.UserRepository
-import jdk.jfr.Experimental
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -112,20 +111,20 @@ class RunningService (
             unlockedAvatars = this.newUnlockedAvatars.toList(),
             badges = this.achievements.map { it.name },
             newBadges = this.newAchievements.map {
-                newBadgeInfo(
+                NewBadgeInfo(
                     name = it.name,
                     exp = it.exp
                 )
             },
             dailyQuests = this.dailyQuests.map { status ->
-                dailyQuestInfo(
+                DailyQuestInfo(
                     title = status.quest.title,
                     exp = status.quest.exp,
                     isComplete = status.isCompleted
                 )
             },
             completedQuests = this.newCompletedQuests.map { quest ->
-                dailyQuestInfo(
+                DailyQuestInfo(
                     title = quest.title,
                     exp = quest.exp,
                     isComplete = true
