@@ -15,6 +15,15 @@ enum class Achievement(
     val exp: Long
 ) {
     // 1. 📅 출석 (단위: 일수)
+
+    ATTENDANCE_LV0(
+        AchievementCategory.ATTENDANCE,
+        "시작이 절반",
+        "러너스하이 세계에 오신 것을 환영해요!",
+        { user -> user.totalRunningDays >= 0 },
+        300
+    ),
+
     ATTENDANCE_LV1(
         AchievementCategory.ATTENDANCE,
         "작심삼일 브레이커",
