@@ -13,12 +13,19 @@ data class Resources(
     val fourth: DrawableResource
 )
 
+sealed interface AvatarItem {
+    val resources: Resources?
+    val titleResource: DrawableResource?
+    val requiredLevel: Int
+    val name: String
+}
+
 @Serializable
 enum class HeadItem(
-    val resources: Resources?,
-    val titleResource: DrawableResource?,
-    val requiredLevel: Int
-) {
+    override val resources: Resources?,
+    override val titleResource: DrawableResource?,
+    override val requiredLevel: Int
+) : AvatarItem {
     NONE(
         resources = null,
         titleResource = null,
@@ -79,10 +86,10 @@ enum class HeadItem(
 
 @Serializable
 enum class TopItem(
-    val resources: Resources?,
-    val titleResource: DrawableResource?,
-    val requiredLevel: Int
-) {
+    override val resources: Resources?,
+    override val titleResource: DrawableResource?,
+    override val requiredLevel: Int
+) : AvatarItem {
     NONE(
         resources = null,
         titleResource = null,
@@ -122,10 +129,10 @@ enum class TopItem(
 
 @Serializable
 enum class BottomItem(
-    val resources: Resources?,
-    val titleResource: DrawableResource?,
-    val requiredLevel: Int
-) {
+    override val resources: Resources?,
+    override val titleResource: DrawableResource?,
+    override val requiredLevel: Int
+) : AvatarItem {
     NONE(
         resources = null,
         titleResource = null,
@@ -165,10 +172,10 @@ enum class BottomItem(
 
 @Serializable
 enum class ShoeItem(
-    val resources: Resources?,
-    val titleResource: DrawableResource?,
-    val requiredLevel: Int
-) {
+    override val resources: Resources?,
+    override val titleResource: DrawableResource?,
+    override val requiredLevel: Int
+) : AvatarItem {
     NONE(
         resources = null,
         titleResource = null,
